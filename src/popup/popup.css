@@ -355,6 +355,26 @@ body {
   color: #1e8e3e !important;
 }
 
+/* Lock button style */
+.tab-action-btn.lock-btn {
+  opacity: 0.5;
+}
+
+.tab-action-btn.lock-btn.locked {
+  opacity: 1;
+  color: #f9ab00;
+}
+
+.tab-action-btn.lock-btn:hover {
+  background: #fef7e0;
+  color: #f9ab00;
+  opacity: 1;
+}
+
+.tab-action-btn.lock-btn.locked:hover {
+  background: #fef7e0;
+}
+
 /* Footer */
 .footer {
   padding: 8px 16px;

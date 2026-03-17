@@ -156,6 +156,47 @@ export async function incrementWakeCount(count = 1) {
 }
 
 /**
+ * Get locked tabs from storage
+ * @returns {Promise<Set<number>>} - Set of locked tab IDs
+ */
+export async function getLockedTabs() {
+  const result = await getStorage(STORAGE_KEYS.LOCKED_TABS);
+  return new Set(result[STORAGE_KEYS.LOCKED_TABS] || []);
+}
+
+/**
+ * Lock a tab
+ * @param {number} tabId - Tab ID to lock
+ * @returns {Promise<void>}
+ */
+export async function lockTab(tabId) {
+  const lockedTabs = await getLockedTabs();
+  lockedTabs.add(tabId);
+  await setStorage({ [STORAGE_KEYS.LOCKED_TABS]: Array.from(lockedTabs) });
+}
+
+/**
+ * Unlock a tab
+ * @param {number} tabId - Tab ID to unlock
+ * @returns {Promise<void>}
+ */
+export async function unlockTab(tabId) {
+  const lockedTabs = await getLockedTabs();
+  lockedTabs.delete(tabId);
+  await setStorage({ [STORAGE_KEYS.LOCKED_TABS]: Array.from(lockedTabs) });
+}
+
+/**
+ * Check if a tab is locked
+ * @param {number} tabId - Tab ID to check
+ * @returns {Promise<boolean>}
+ */
+export async function isTabLocked(tabId) {
+  const lockedTabs = await getLockedTabs();
+  return lockedTabs.has(tabId);
+}
+
+/**
  * Initialize storage with default values if not exists
  * @returns {Promise<void>}
  */
@@ -164,7 +205,8 @@ export async function initializeStorage() {
     STORAGE_KEYS.WHITELIST,
     STORAGE_KEYS.SETTINGS,
     STORAGE_KEYS.STATISTICS,
-    STORAGE_KEYS.SLEEPING_TABS
+    STORAGE_KEYS.SLEEPING_TABS,
+    STORAGE_KEYS.LOCKED_TABS
   ]);
 
   const toSet = {};
@@ -183,6 +225,10 @@ export async function initializeStorage() {
 
   if (!existingData[STORAGE_KEYS.SLEEPING_TABS]) {
     toSet[STORAGE_KEYS.SLEEPING_TABS] = {};
+  }
+
+  if (!existingData[STORAGE_KEYS.LOCKED_TABS]) {
+    toSet[STORAGE_KEYS.LOCKED_TABS] = [];
   }
 
   if (Object.keys(toSet).length > 0) {

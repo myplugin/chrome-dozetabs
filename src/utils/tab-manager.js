@@ -1,5 +1,5 @@
 import { isWhitelisted, isChromeInternalPage, isEmptyTabPage } from './whitelist.js';
-import { getSettings } from './storage.js';
+import { getSettings, isTabLocked } from './storage.js';
 
 /**
  * Query tabs in the current window
@@ -80,6 +80,11 @@ export async function canSleepTab(tab) {
   // Check if already sleeping
   if (tab.discarded) {
     return { canSleep: false, reason: 'Tab is already sleeping' };
+  }
+
+  // Check if locked by user
+  if (await isTabLocked(tab.id)) {
+    return { canSleep: false, reason: 'Tab is locked' };
   }
 
   // Check if empty/new tab page (should not count or sleep)

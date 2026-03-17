@@ -252,5 +252,29 @@
   "failedToResetStatistics": {
     "message": "重置统计数据失败",
     "description": "错误提示"
+  },
+  "lockTab": {
+    "message": "锁定标签页",
+    "description": "锁定标签页按钮提示"
+  },
+  "unlockTab": {
+    "message": "解锁标签页",
+    "description": "解锁标签页按钮提示"
+  },
+  "tabLocked": {
+    "message": "标签页已锁定",
+    "description": "锁定成功提示"
+  },
+  "tabUnlocked": {
+    "message": "标签页已解锁",
+    "description": "解锁成功提示"
+  },
+  "tabIsLocked": {
+    "message": "标签页已锁定",
+    "description": "标签页因锁定而无法休眠的原因"
+  },
+  "failedToLockTab": {
+    "message": "锁定/解锁标签页失败",
+    "description": "锁定/解锁失败时的错误提示"
   }
 }

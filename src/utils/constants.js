@@ -3,7 +3,8 @@ export const STORAGE_KEYS = {
   WHITELIST: 'whitelist',
   SLEEPING_TABS: 'sleepingTabs',
   SETTINGS: 'settings',
-  STATISTICS: 'statistics'
+  STATISTICS: 'statistics',
+  LOCKED_TABS: 'lockedTabs'
 };
 
 // Default whitelist domains that should not be slept
@@ -69,7 +70,10 @@ export const MESSAGE_TYPES = {
   UPDATE_SETTINGS: 'updateSettings',
   GET_STATISTICS: 'getStatistics',
   GET_SLEEPING_TABS: 'getSleepingTabs',
-  FETCH_FAVICON: 'fetchFavicon'
+  FETCH_FAVICON: 'fetchFavicon',
+  LOCK_TAB: 'lockTab',
+  UNLOCK_TAB: 'unlockTab',
+  GET_LOCKED_TABS: 'getLockedTabs'
 };
 
 // Icon paths

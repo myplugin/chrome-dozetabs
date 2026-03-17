@@ -252,5 +252,29 @@
   "failedToResetStatistics": {
     "message": "Failed to reset statistics",
     "description": "Error message"
+  },
+  "lockTab": {
+    "message": "Lock tab",
+    "description": "Lock tab button tooltip"
+  },
+  "unlockTab": {
+    "message": "Unlock tab",
+    "description": "Unlock tab button tooltip"
+  },
+  "tabLocked": {
+    "message": "Tab locked",
+    "description": "Toast message when tab is locked"
+  },
+  "tabUnlocked": {
+    "message": "Tab unlocked",
+    "description": "Toast message when tab is unlocked"
+  },
+  "tabIsLocked": {
+    "message": "Tab is locked",
+    "description": "Reason when tab cannot be slept because it's locked"
+  },
+  "failedToLockTab": {
+    "message": "Failed to lock/unlock tab",
+    "description": "Error message when locking/unlocking fails"
   }
 }

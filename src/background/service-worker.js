@@ -14,7 +14,10 @@ import {
   getStatistics,
   incrementSleepCount,
   incrementWakeCount,
-  initializeStorage
+  initializeStorage,
+  lockTab,
+  unlockTab,
+  getLockedTabs
 } from '../utils/storage.js';
 import {
   canSleepTab,
@@ -113,8 +116,9 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   }
 });
 
-// Update badge when tabs are removed
-chrome.tabs.onRemoved.addListener(async () => {
+// Update badge and clear lock status when tabs are removed
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await unlockTab(tabId); // Clear lock status when tab is closed
   await updateBadge();
 });
 
@@ -177,6 +181,24 @@ async function handleMessage(message, sender) {
 
     case MESSAGE_TYPES.FETCH_FAVICON:
       return await handleFetchFavicon(payload.url);
+
+    case MESSAGE_TYPES.LOCK_TAB:
+      await lockTab(payload.tabId);
+      return { success: true };
+
+    case MESSAGE_TYPES.UNLOCK_TAB:
+      await unlockTab(payload.tabId);
+      return { success: true };
+
+    case MESSAGE_TYPES.IS_TAB_LOCKED: {
+      const locked = await isTabLocked(payload.tabId);
+      return { isLocked: locked };
+    }
+
+    case MESSAGE_TYPES.GET_LOCKED_TABS: {
+      const tabs = await getLockedTabs();
+      return { lockedTabs: Array.from(tabs) };
+    }
 
     default:
       return { error: 'Unknown message type' };
@@ -311,6 +333,9 @@ async function handleSleepTab(tabId) {
     console.log('[Tab Sleep] Step 10: Updating badge...');
     await updateBadge();
     console.log('[Tab Sleep] Step 10 done');
+
+    // Step 12: Clear lock status (lock is one-time protection)
+    await unlockTab(tabId);
 
     console.log('[Tab Sleep] handleSleepTab SUCCESS for tabId:', tabId);
     return { success: true };

@@ -44,6 +44,7 @@ let currentView = 'active';
 let allTabs = [];
 let currentTab = null;
 let whitelist = [];
+let lockedTabs = new Set();
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -82,18 +83,21 @@ function switchView(view) {
 }
 
 // Load tabs list
-async function loadTabs(delay = 0) {
+async function loadTabs(delay = 0, preserveScroll = false) {
   try {
     // Optional delay to wait for Chrome to update tab states
     if (delay > 0) {
       await new Promise(resolve => setTimeout(resolve, delay));
     }
 
-    tabsListEl.innerHTML = `<div class="loading">${t('loading')}</div>`;
+    if (!preserveScroll) {
+      tabsListEl.innerHTML = `<div class="loading">${t('loading')}</div>`;
+    }
 
     allTabs = await chrome.tabs.query({ currentWindow: true });
     [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     whitelist = await getWhitelist();
+    lockedTabs = await getLockedTabs();
 
     // Count tabs (excluding empty/new tab pages)
     const sleepingTabs = allTabs.filter(tab => isTabSleeping(tab) && !isEmptyTabPage(tab.url, tab.title));
@@ -109,7 +113,7 @@ async function loadTabs(delay = 0) {
     });
 
     // Render the list
-    renderTabsList();
+    renderTabsList(preserveScroll);
 
   } catch (error) {
     console.error('[Tab Sleep] Failed to load tabs:', error);
@@ -118,7 +122,10 @@ async function loadTabs(delay = 0) {
 }
 
 // Render tabs list based on current view
-function renderTabsList() {
+function renderTabsList(preserveScroll = false) {
+  // Save scroll position if needed
+  const savedScrollTop = preserveScroll ? tabsListEl.scrollTop : 0;
+
   const filteredTabs = currentView === 'active'
     ? allTabs.filter(tab => !isTabSleeping(tab) && !isEmptyTabPage(tab.url, tab.title))
     : allTabs.filter(tab => isTabSleeping(tab) && !isEmptyTabPage(tab.url, tab.title));
@@ -131,11 +138,18 @@ function renderTabsList() {
     return;
   }
 
-  // Sort: current tab first
+  // Sort: current tab first, then locked tabs, then others by original index
   const sortedTabs = filteredTabs.sort((a, b) => {
+    // Current tab always first
     if (a.id === currentTab?.id) return -1;
     if (b.id === currentTab?.id) return 1;
-    return 0;
+    // Then locked tabs (sorted by index)
+    const aLocked = lockedTabs.has(a.id);
+    const bLocked = lockedTabs.has(b.id);
+    if (aLocked && !bLocked) return -1;
+    if (!aLocked && bLocked) return 1;
+    // Within same group, sort by original index
+    return a.index - b.index;
   });
 
   tabsListEl.innerHTML = sortedTabs.map(tab => createTabItem(tab)).join('');
@@ -170,6 +184,21 @@ function renderTabsList() {
       await handleWakeTab(tabId);
     });
   });
+
+  // Add lock button handlers
+  tabsListEl.querySelectorAll('.lock-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const tabId = parseInt(btn.dataset.tabId);
+      const isLocked = btn.classList.contains('locked');
+      await handleToggleLock(tabId, !isLocked);
+    });
+  });
+
+  // Restore scroll position if needed
+  if (preserveScroll) {
+    tabsListEl.scrollTop = savedScrollTop;
+  }
 }
 
 // Lucide Icons as inline SVG strings
@@ -178,7 +207,9 @@ const ICONS = {
   sun: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
   pin: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>',
   volume: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
-  lock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+  lock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  lockOpen: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  lockFilled: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none"/></svg>'
 };
 
 // Default favicon SVG
@@ -215,6 +246,7 @@ async function loadFavicons() {
 function createTabItem(tab) {
   const isActive = tab.id === currentTab?.id;
   const isSleeping = isTabSleeping(tab);
+  const isLocked = lockedTabs.has(tab.id);
   const isProtected = !isSleeping && (isWhitelisted(tab.url, whitelist) || isChromeInternal(tab.url));
 
   // Store favicon URL in data attribute, use default for initial display
@@ -225,13 +257,16 @@ function createTabItem(tab) {
     badge = `<span class="tab-badge pinned">${ICONS.pin}</span>`;
   } else if (tab.audible) {
     badge = `<span class="tab-badge audible">${ICONS.volume}</span>`;
-  } else if (isProtected) {
-    badge = `<span class="tab-badge protected">${ICONS.lock}</span>`;
   }
+
+  // Lock button for active tabs
+  const lockBtn = !isSleeping
+    ? `<button class="tab-action-btn lock-btn ${isLocked ? 'locked' : ''}" data-tab-id="${tab.id}" title="${isLocked ? t('unlockTab') : t('lockTab')}">${isLocked ? ICONS.lockFilled : ICONS.lockOpen}</button>`
+    : '';
 
   const actionBtn = isSleeping
     ? `<button class="tab-action-btn wake-btn" data-tab-id="${tab.id}" title="${t('wakeTab')}">${ICONS.sun}</button>`
-    : `<button class="tab-action-btn sleep-btn" data-tab-id="${tab.id}" title="${t('sleepTab')}" ${isProtected ? 'disabled' : ''}>${ICONS.moon}</button>`;
+    : `<button class="tab-action-btn sleep-btn" data-tab-id="${tab.id}" title="${t('sleepTab')}" ${isProtected || isLocked ? 'disabled' : ''}>${ICONS.moon}</button>`;
 
   return `
     <div class="tab-item ${isActive ? 'active' : ''} ${isSleeping ? 'sleeping' : ''}" data-tab-id="${tab.id}">
@@ -242,6 +277,7 @@ function createTabItem(tab) {
       </div>
       ${badge}
       <div class="tab-actions">
+        ${lockBtn}
         ${actionBtn}
       </div>
     </div>
@@ -331,6 +367,21 @@ async function handleWakeTab(tabId) {
   }
 }
 
+// Handle toggle lock
+async function handleToggleLock(tabId, shouldLock) {
+  try {
+    const messageType = shouldLock ? MESSAGE_TYPES.LOCK_TAB : MESSAGE_TYPES.UNLOCK_TAB;
+    await sendMessage({
+      type: messageType,
+      payload: { tabId }
+    });
+    showToast(shouldLock ? t('tabLocked') : t('tabUnlocked'));
+    await loadTabs(0, true); // Preserve scroll position
+  } catch (error) {
+    showToast(t('failedToLockTab'), true);
+  }
+}
+
 // Refresh button
 refreshListBtn.addEventListener('click', async () => {
   await loadTabs();
@@ -354,6 +405,16 @@ async function getWhitelist() {
     return response?.whitelist || [];
   } catch {
     return [];
+  }
+}
+
+// Helper: Get locked tabs
+async function getLockedTabs() {
+  try {
+    const response = await sendMessage({ type: MESSAGE_TYPES.GET_LOCKED_TABS });
+    return new Set(response?.lockedTabs || []);
+  } catch {
+    return new Set();
   }
 }
 
