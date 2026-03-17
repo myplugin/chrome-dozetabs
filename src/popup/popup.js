@@ -27,6 +27,18 @@ const viewTabs = document.querySelectorAll('.view-tab');
 const openOptionsBtn = document.getElementById('openOptions');
 const refreshListBtn = document.getElementById('refreshList');
 
+// Debug: Log DOM elements
+console.log('[Tab Sleep] DOM Elements:', {
+  sleepCurrentTabBtn: !!sleepCurrentTabBtn,
+  sleepOtherTabsBtn: !!sleepOtherTabsBtn,
+  activeCountEl: !!activeCountEl,
+  sleepingCountEl: !!sleepingCountEl,
+  tabsListEl: !!tabsListEl,
+  viewTabs: viewTabs.length,
+  openOptionsBtn: !!openOptionsBtn,
+  refreshListBtn: !!refreshListBtn
+});
+
 // State
 let currentView = 'active';
 let allTabs = [];
@@ -70,8 +82,13 @@ function switchView(view) {
 }
 
 // Load tabs list
-async function loadTabs() {
+async function loadTabs(delay = 0) {
   try {
+    // Optional delay to wait for Chrome to update tab states
+    if (delay > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
     tabsListEl.innerHTML = `<div class="loading">${t('loading')}</div>`;
 
     allTabs = await chrome.tabs.query({ currentWindow: true });
@@ -133,12 +150,8 @@ function renderTabsList() {
     });
   });
 
-  // Handle favicon load errors
-  tabsListEl.querySelectorAll('.tab-favicon').forEach(img => {
-    img.addEventListener('error', () => {
-      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#5f6368"><circle cx="12" cy="12" r="10"/></svg>');
-    });
-  });
+  // Load favicons asynchronously via background script to avoid 403 errors in console
+  loadFavicons();
 
   // Add sleep button handlers
   tabsListEl.querySelectorAll('.sleep-btn').forEach(btn => {
@@ -168,13 +181,44 @@ const ICONS = {
   lock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
 };
 
+// Default favicon SVG
+const DEFAULT_FAVICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#5f6368"><circle cx="12" cy="12" r="10"/></svg>');
+
+// Load favicons asynchronously via background script
+async function loadFavicons() {
+  const faviconImgs = tabsListEl.querySelectorAll('.tab-favicon[data-favicon-url]');
+
+  for (const img of faviconImgs) {
+    const faviconUrl = img.dataset.faviconUrl;
+    if (!faviconUrl) continue;
+
+    try {
+      const result = await sendMessage({
+        type: MESSAGE_TYPES.FETCH_FAVICON,
+        payload: { url: faviconUrl }
+      });
+
+      if (result && result.dataUrl) {
+        img.src = result.dataUrl;
+      }
+    } catch (error) {
+      // Silently fail, keep default favicon
+      console.debug('[Tab Sleep] Failed to load favicon:', faviconUrl);
+    }
+
+    // Remove data attribute to avoid re-fetching
+    delete img.dataset.faviconUrl;
+  }
+}
+
 // Create tab item HTML
 function createTabItem(tab) {
   const isActive = tab.id === currentTab?.id;
   const isSleeping = isTabSleeping(tab);
   const isProtected = !isSleeping && (isWhitelisted(tab.url, whitelist) || isChromeInternal(tab.url));
 
-  const favicon = tab.favIconUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%235f6368"><circle cx="12" cy="12" r="10"/></svg>';
+  // Store favicon URL in data attribute, use default for initial display
+  const faviconUrl = tab.favIconUrl || '';
 
   let badge = '';
   if (tab.pinned) {
@@ -191,7 +235,7 @@ function createTabItem(tab) {
 
   return `
     <div class="tab-item ${isActive ? 'active' : ''} ${isSleeping ? 'sleeping' : ''}" data-tab-id="${tab.id}">
-      <img class="tab-favicon" src="${favicon}" alt="">
+      <img class="tab-favicon" src="${DEFAULT_FAVICON}" data-favicon-url="${escapeHtml(faviconUrl)}" alt="">
       <div class="tab-info">
         <div class="tab-title">${escapeHtml(tab.title || t('untitled'))}</div>
         <div class="tab-url">${escapeHtml(getShortUrl(tab.url))}</div>
@@ -214,34 +258,65 @@ sleepCurrentTabBtn.addEventListener('click', async () => {
 
 // Handle sleep other tabs
 sleepOtherTabsBtn.addEventListener('click', async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab) {
-    const result = await sendMessage({
-      type: MESSAGE_TYPES.SLEEP_ALL_OTHER,
-      payload: { currentTabId: tab.id }
-    });
+  console.log('[Tab Sleep] Sleep other tabs button clicked');
 
-    if (result && (result.slept !== undefined || result.success)) {
-      showToast(t('tabsSlept', [String(result.slept || result.discarded || 0), String(result.skipped || 0)]));
-      await loadTabs();
-    } else {
-      showToast(result?.reason || t('failedToSleepTab'), true);
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  console.log('[Tab Sleep] Current tab:', tab);
+
+  if (tab) {
+    console.log('[Tab Sleep] Sending SLEEP_ALL_OTHER for tabId:', tab.id);
+
+    try {
+      const message = {
+        type: MESSAGE_TYPES.SLEEP_ALL_OTHER,
+        payload: { currentTabId: tab.id }
+      };
+      console.log('[Tab Sleep] Message to send:', message);
+
+      const result = await sendMessage(message);
+
+      console.log('[Tab Sleep] SLEEP_ALL_OTHER result:', result);
+
+      if (result && (result.slept !== undefined || result.success)) {
+        showToast(t('tabsSlept', [String(result.slept || result.discarded || 0), String(result.skipped || 0)]));
+        // Add delay to let Chrome update tab states after discard
+        await loadTabs(200);
+      } else {
+        const errorMsg = result?.reason || result?.error || 'Unknown error';
+        console.error('[Tab Sleep] SLEEP_ALL_OTHER failed:', errorMsg);
+        showToast(errorMsg, true);
+      }
+    } catch (error) {
+      console.error('[Tab Sleep] SLEEP_ALL_OTHER error:', error);
+      showToast(t('failedToSleepTab'), true);
     }
+  } else {
+    console.error('[Tab Sleep] No current tab found');
   }
 });
 
 // Handle sleeping a tab
 async function handleSleepTab(tabId) {
-  const result = await sendMessage({
-    type: MESSAGE_TYPES.SLEEP_TAB,
-    payload: { tabId }
-  });
+  console.log('[Tab Sleep] Sending SLEEP_TAB for tabId:', tabId);
 
-  if (result && result.success) {
-    showToast(t('tabSlept'));
-    await loadTabs();
-  } else {
-    showToast(result?.reason || t('failedToSleepTab'), true);
+  try {
+    const result = await sendMessage({
+      type: MESSAGE_TYPES.SLEEP_TAB,
+      payload: { tabId }
+    });
+
+    console.log('[Tab Sleep] SLEEP_TAB result:', result);
+
+    if (result && result.success) {
+      showToast(t('tabSlept'));
+      // Add delay to let Chrome update tab states after discard
+      await loadTabs(200);
+    } else {
+      showToast(result?.reason || result?.error || t('failedToSleepTab'), true);
+    }
+  } catch (error) {
+    console.error('[Tab Sleep] SLEEP_TAB error:', error);
+    showToast(t('failedToSleepTab'), true);
   }
 }
 

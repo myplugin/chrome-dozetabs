@@ -10,13 +10,11 @@ body {
   color: #202124;
   background: #fff;
   width: 360px;
-  min-height: 400px;
 }
 
 .popup-container {
   display: flex;
   flex-direction: column;
-  min-height: 400px;
 }
 
 /* Header */
@@ -132,7 +130,6 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 200px;
 }
 
 /* View Tabs */
@@ -215,11 +212,12 @@ body {
 .tabs-list {
   flex: 1;
   overflow-y: auto;
-  max-height: 280px;
+  max-height: 300px;
+  min-height: 60px;
 }
 
 .loading {
-  padding: 40px 16px;
+  padding: 20px 16px;
   text-align: center;
   color: #5f6368;
 }
@@ -429,7 +427,7 @@ body {
 
 /* Empty State */
 .empty-state {
-  padding: 40px 16px;
+  padding: 24px 16px;
   text-align: center;
   color: #5f6368;
   font-size: 13px;

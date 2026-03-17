@@ -68,7 +68,8 @@ export const MESSAGE_TYPES = {
   GET_SETTINGS: 'getSettings',
   UPDATE_SETTINGS: 'updateSettings',
   GET_STATISTICS: 'getStatistics',
-  GET_SLEEPING_TABS: 'getSleepingTabs'
+  GET_SLEEPING_TABS: 'getSleepingTabs',
+  FETCH_FAVICON: 'fetchFavicon'
 };
 
 // Icon paths

@@ -127,18 +127,27 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
 
 // Handle messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  handleMessage(message, sender).then(sendResponse);
+  console.log('[Tab Sleep] Received message:', message.type, message);
+  handleMessage(message, sender).then(result => {
+    console.log('[Tab Sleep] Sending response for', message.type, ':', result);
+    sendResponse(result);
+  }).catch(error => {
+    console.error('[Tab Sleep] Error handling message:', message.type, error);
+    sendResponse({ error: error.message });
+  });
   return true; // Keep channel open for async response
 });
 
 async function handleMessage(message, sender) {
   const { type, payload } = message;
+  console.log('[Tab Sleep] Processing message type:', type, 'payload:', payload);
 
   switch (type) {
     case MESSAGE_TYPES.SLEEP_TAB:
       return await handleSleepTab(payload.tabId);
 
     case MESSAGE_TYPES.SLEEP_ALL_OTHER:
+      console.log('[Tab Sleep] Calling handleSleepAllOther with tabId:', payload.currentTabId);
       return await handleSleepAllOther(payload.currentTabId);
 
     case MESSAGE_TYPES.WAKE_TAB:
@@ -166,32 +175,84 @@ async function handleMessage(message, sender) {
     case MESSAGE_TYPES.GET_SLEEPING_TABS:
       return { sleepingTabs: await getSleepingTabs() };
 
+    case MESSAGE_TYPES.FETCH_FAVICON:
+      return await handleFetchFavicon(payload.url);
+
     default:
       return { error: 'Unknown message type' };
   }
 }
 
+// Fetch favicon and return as base64 data URL
+async function handleFetchFavicon(url) {
+  const DEFAULT_FAVICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#5f6368"><circle cx="12" cy="12" r="10"/></svg>');
+
+  if (!url) {
+    return { success: false, dataUrl: DEFAULT_FAVICON };
+  }
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.debug(`[Tab Sleep] Favicon fetch returned ${response.status}: ${url}`);
+      return { success: false, dataUrl: DEFAULT_FAVICON };
+    }
+
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve({ success: true, dataUrl: reader.result });
+      };
+      reader.onerror = () => {
+        resolve({ success: false, dataUrl: DEFAULT_FAVICON });
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.debug(`[Tab Sleep] Favicon fetch failed: ${url}`);
+    return { success: false, dataUrl: DEFAULT_FAVICON };
+  }
+}
+
 // Sleep a single tab
 async function handleSleepTab(tabId) {
+  console.log('[Tab Sleep] handleSleepTab start for tabId:', tabId);
+
   try {
+    // Step 1: Get tab
+    console.log('[Tab Sleep] Step 1: Getting tab...');
     const tab = await getTab(tabId);
+    console.log('[Tab Sleep] Step 1 done, tab:', tab?.id, tab?.url?.substring(0, 50));
+
+    // Step 2: Check if can sleep
+    console.log('[Tab Sleep] Step 2: Checking if can sleep...');
     const { canSleep, reason } = await canSleepTab(tab);
+    console.log('[Tab Sleep] Step 2 done, canSleep:', canSleep, 'reason:', reason);
 
     if (!canSleep) {
       return { success: false, reason };
     }
 
-    // Check if this is the currently active tab in its window
+    // Step 3: Check if active tab
+    console.log('[Tab Sleep] Step 3: Checking if active tab...');
     const [activeTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
     const isActiveTab = activeTab && activeTab.id === tabId;
+    console.log('[Tab Sleep] Step 3 done, isActiveTab:', isActiveTab);
 
-    // If sleeping the active tab, switch to another tab first
+    // Step 4: Switch away if active
     if (isActiveTab) {
+      console.log('[Tab Sleep] Step 4: Switching away from active tab...');
       await switchAwayFromTab(tab);
+      console.log('[Tab Sleep] Step 4 done');
     }
 
-    // Save tab state before sleeping
+    // Step 5: Get settings
+    console.log('[Tab Sleep] Step 5: Getting settings...');
     const settings = await getSettings();
+    console.log('[Tab Sleep] Step 5 done');
+
+    // Step 6: Prepare tab state
     const tabState = {
       tabId,
       originalUrl: tab.url,
@@ -200,13 +261,21 @@ async function handleSleepTab(tabId) {
       sleptAt: Date.now()
     };
 
-    // Try to save scroll position and form data
+    // Step 7: Capture scroll/form state (with timeout)
     if (settings.preserveScrollPosition || settings.preserveFormData) {
+      console.log('[Tab Sleep] Step 6: Capturing tab state...');
       try {
-        const results = await executeScript(tabId, {
+        const capturePromise = executeScript(tabId, {
           func: captureTabState,
           args: [settings.preserveScrollPosition, settings.preserveFormData]
         });
+
+        // 3 second timeout for script execution
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Script execution timeout')), 3000)
+        );
+
+        const results = await Promise.race([capturePromise, timeoutPromise]);
 
         if (results && results[0] && results[0].result) {
           const capturedState = results[0].result;
@@ -217,23 +286,36 @@ async function handleSleepTab(tabId) {
             tabState.formData = capturedState.formData;
           }
         }
+        console.log('[Tab Sleep] Step 6 done');
       } catch (e) {
-        console.log('Could not capture tab state:', e.message);
+        console.log('[Tab Sleep] Step 6 skipped:', e.message);
       }
     }
 
-    // Save state to storage
+    // Step 8: Save state to storage
+    console.log('[Tab Sleep] Step 7: Saving sleeping tab state...');
     await saveSleepingTab(tabId, tabState);
+    console.log('[Tab Sleep] Step 7 done');
 
-    // Sleep the tab
+    // Step 9: Sleep the tab (discard)
+    console.log('[Tab Sleep] Step 8: Discarding tab...');
     await sleepTab(tabId);
+    console.log('[Tab Sleep] Step 8 done');
 
-    // Update statistics and badge
+    // Step 10: Update statistics
+    console.log('[Tab Sleep] Step 9: Incrementing sleep count...');
     await incrementSleepCount();
-    await updateBadge();
+    console.log('[Tab Sleep] Step 9 done');
 
+    // Step 11: Update badge
+    console.log('[Tab Sleep] Step 10: Updating badge...');
+    await updateBadge();
+    console.log('[Tab Sleep] Step 10 done');
+
+    console.log('[Tab Sleep] handleSleepTab SUCCESS for tabId:', tabId);
     return { success: true };
   } catch (error) {
+    console.error('[Tab Sleep] handleSleepTab ERROR for tabId:', tabId, error);
     return { success: false, reason: error.message };
   }
 }
@@ -290,37 +372,78 @@ function captureTabState(saveScroll, saveForm) {
 
 // Sleep all other tabs
 async function handleSleepAllOther(currentTabId) {
-  const tabs = await queryTabs();
-  const results = {
-    slept: 0,
-    skipped: 0,
-    reasons: []
-  };
+  console.log('[Tab Sleep] handleSleepAllOther called with tabId:', currentTabId);
 
-  for (const tab of tabs) {
-    if (tab.id === currentTabId) continue;
-    if (tab.discarded) {
-      results.skipped++;
-      continue;
-    }
+  try {
+    const tabs = await queryTabs();
+    console.log('[Tab Sleep] Found tabs:', tabs.length);
 
-    const { canSleep, reason } = await canSleepTab(tab);
+    const results = {
+      slept: 0,
+      skipped: 0,
+      reasons: []
+    };
 
-    if (canSleep) {
-      const result = await handleSleepTab(tab.id);
-      if (result.success) {
-        results.slept++;
-      } else {
+    // Helper function with timeout
+    const withTimeout = (promise, ms, errorMsg) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+      ]);
+    };
+
+    for (const tab of tabs) {
+      if (tab.id === currentTabId) {
+        console.log('[Tab Sleep] Skipping current tab:', tab.id);
+        continue;
+      }
+      if (tab.discarded) {
+        console.log('[Tab Sleep] Skipping already discarded tab:', tab.id);
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        console.log('[Tab Sleep] Processing tab:', tab.id, tab.url?.substring(0, 50));
+
+        const { canSleep, reason } = await withTimeout(
+          canSleepTab(tab),
+          5000,
+          'canSleepTab timeout'
+        );
+        console.log('[Tab Sleep] Tab', tab.id, 'canSleep:', canSleep, 'reason:', reason);
+
+        if (canSleep) {
+          // Add 10 second timeout for sleep operation
+          const result = await withTimeout(
+            handleSleepTab(tab.id),
+            10000,
+            'handleSleepTab timeout'
+          );
+          if (result.success) {
+            results.slept++;
+            console.log('[Tab Sleep] Successfully slept tab:', tab.id);
+          } else {
+            results.skipped++;
+            console.log('[Tab Sleep] Failed to sleep tab:', tab.id, result.reason);
+          }
+        } else {
+          results.skipped++;
+          results.reasons.push({ title: tab.title, reason });
+        }
+      } catch (tabError) {
+        console.error('[Tab Sleep] Error processing tab:', tab.id, tabError.message || tabError);
         results.skipped++;
       }
-    } else {
-      results.skipped++;
-      results.reasons.push({ title: tab.title, reason });
     }
-  }
 
-  await updateBadge();
-  return results;
+    console.log('[Tab Sleep] handleSleepAllOther results:', results);
+    await updateBadge();
+    return results;
+  } catch (error) {
+    console.error('[Tab Sleep] handleSleepAllOther error:', error);
+    return { slept: 0, skipped: 0, reasons: [], error: error.message };
+  }
 }
 
 // Wake a tab (reload it)
