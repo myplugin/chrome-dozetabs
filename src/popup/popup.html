@@ -8,72 +8,53 @@
 </head>
 <body>
   <div class="popup-container">
+    <!-- Header -->
     <header class="header">
-      <h1 class="title">
-        <!-- Lucide Moon icon -->
-        <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-        </svg>
-        <span data-i18n="extName">Tab Sleep Tool</span>
-      </h1>
+      <div class="header-left">
+        <span class="brand" data-i18n="extName">Tab Sleep Tool</span>
+      </div>
+      <div class="header-actions">
+        <!-- 刷新 -->
+        <button id="refreshList" class="icon-btn" data-i18n-title="refresh">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 16v5h5"/>
+          </svg>
+        </button>
+        <!-- 休眠其他标签 -->
+        <button id="sleepOtherTabs" class="icon-btn" data-i18n-title="sleepOtherTabs">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        </button>
+        <!-- 设置 -->
+        <button id="openOptions" class="icon-btn" data-i18n-title="settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
     </header>
 
-    <div class="actions">
-      <button id="sleepCurrentTab" class="btn btn-primary">
-        <!-- Lucide Moon icon -->
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-        </svg>
-        <span data-i18n="sleepCurrentTab">Sleep Current Tab</span>
+    <!-- View Tabs -->
+    <div class="view-tabs">
+      <button class="view-tab active" data-view="active">
+        <span class="tab-label" data-i18n="active">Active</span>
+        <span class="tab-count" id="activeCount">0</span>
       </button>
-      <button id="sleepOtherTabs" class="btn btn-secondary">
-        <!-- Lucide PanelLeftClose icon -->
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2"/>
-          <path d="M9 3v18"/>
-          <path d="m14 9-3 3 3 3"/>
-        </svg>
-        <span data-i18n="sleepOtherTabs">Sleep All Other Tabs</span>
+      <button class="view-tab" data-view="sleeping">
+        <span class="tab-label" data-i18n="sleeping">Sleeping</span>
+        <span class="tab-count" id="sleepingCount">0</span>
       </button>
     </div>
 
-    <div class="tabs-view">
-      <div class="view-tabs">
-        <button class="view-tab active" data-view="active">
-          <span class="tab-label" data-i18n="active">Active</span>
-          <span class="tab-count" id="activeCount">0</span>
-        </button>
-        <button class="view-tab" data-view="sleeping">
-          <span class="tab-label" data-i18n="sleeping">Sleeping</span>
-          <span class="tab-count" id="sleepingCount">0</span>
-        </button>
-      </div>
-
-      <div class="tabs-list" id="tabsList">
-        <div class="loading" data-i18n="loading">Loading...</div>
-      </div>
+    <!-- Tabs List -->
+    <div class="tabs-list" id="tabsList">
+      <div class="loading" data-i18n="loading">Loading...</div>
     </div>
-
-    <footer class="footer">
-      <button id="refreshList" class="btn btn-link" title="Refresh">
-        <!-- Lucide RefreshCw icon -->
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-          <path d="M21 3v5h-5"/>
-          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-          <path d="M8 16H3v5"/>
-        </svg>
-        <span data-i18n="refresh">Refresh</span>
-      </button>
-      <button id="openOptions" class="btn btn-link">
-        <!-- Lucide Settings icon -->
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        <span data-i18n="settings">Settings</span>
-      </button>
-    </footer>
   </div>
 
   <script src="popup.js" type="module"></script>
