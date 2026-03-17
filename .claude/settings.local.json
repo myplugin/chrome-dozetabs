@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv manifest.json src/)",
+      "Bash(mv assets:*)",
+      "Bash(cd:*)"
+    ]
+  }
+}

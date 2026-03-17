@@ -13,11 +13,11 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "src/background/service-worker.js",
+    "service_worker": "background/service-worker.js",
     "type": "module"
   },
   "action": {
-    "default_popup": "src/popup/popup.html",
+    "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "assets/icons/icon16.png",
       "32": "assets/icons/icon32.png",
@@ -31,11 +31,11 @@
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-  "options_page": "src/options/options.html",
+  "options_page": "options/options.html",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content/content-script.js"],
+      "js": ["content/content-script.js"],
       "run_at": "document_idle"
     }
   ],
