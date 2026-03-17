@@ -1,5 +1,27 @@
 import { MESSAGE_TYPES, DEFAULT_SETTINGS, DEFAULT_WHITELIST } from '../utils/constants.js';
 
+// i18n helper
+function t(key, substitutions) {
+  if (substitutions) {
+    return chrome.i18n.getMessage(key, substitutions);
+  }
+  return chrome.i18n.getMessage(key);
+}
+
+// Apply i18n to all elements with data-i18n attribute
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    el.textContent = t(key);
+  });
+
+  // Apply placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    el.placeholder = t(key);
+  });
+}
+
 // DOM Elements
 const excludePinned = document.getElementById('excludePinned');
 const excludeAudible = document.getElementById('excludeAudible');
@@ -18,6 +40,9 @@ let currentWhitelist = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+  // Apply translations
+  applyTranslations();
+
   await Promise.all([
     loadSettings(),
     loadWhitelist(),
@@ -81,9 +106,9 @@ async function loadStatistics() {
         type: MESSAGE_TYPES.UPDATE_SETTINGS,
         payload: { settings }
       });
-      showToast('Settings saved', 'success');
+      showToast(t('settingsSaved'), 'success');
     } catch (error) {
-      showToast('Failed to save settings', 'error');
+      showToast(t('failedToSaveSettings'), 'error');
     }
   });
 });
@@ -93,7 +118,7 @@ addDomainBtn.addEventListener('click', async () => {
   const domain = newDomainInput.value.trim();
 
   if (!domain) {
-    showToast('Please enter a domain', 'error');
+    showToast(t('pleaseEnterDomain'), 'error');
     return;
   }
 
@@ -101,12 +126,12 @@ addDomainBtn.addEventListener('click', async () => {
   const cleanDomain = extractDomain(domain);
 
   if (!cleanDomain) {
-    showToast('Invalid domain format', 'error');
+    showToast(t('invalidDomainFormat'), 'error');
     return;
   }
 
   if (currentWhitelist.includes(cleanDomain)) {
-    showToast('Domain already in whitelist', 'error');
+    showToast(t('domainAlreadyInWhitelist'), 'error');
     return;
   }
 
@@ -120,12 +145,12 @@ addDomainBtn.addEventListener('click', async () => {
       currentWhitelist.push(cleanDomain);
       renderWhitelist();
       newDomainInput.value = '';
-      showToast('Domain added to whitelist', 'success');
+      showToast(t('domainAdded'), 'success');
     } else {
-      showToast(response.reason || 'Failed to add domain', 'error');
+      showToast(response.reason || t('failedToAddDomain'), 'error');
     }
   } catch (error) {
-    showToast('Failed to add domain', 'error');
+    showToast(t('failedToAddDomain'), 'error');
   }
 });
 
@@ -139,14 +164,14 @@ newDomainInput.addEventListener('keypress', (e) => {
 // Render whitelist
 function renderWhitelist() {
   if (currentWhitelist.length === 0) {
-    whitelistList.innerHTML = '<div class="empty-state">No domains in whitelist</div>';
+    whitelistList.innerHTML = `<div class="empty-state">${t('noDomainsInWhitelist')}</div>`;
     return;
   }
 
   whitelistList.innerHTML = currentWhitelist.map(domain => `
     <div class="whitelist-item">
       <span class="whitelist-domain">${escapeHtml(domain)}</span>
-      <button class="btn btn-remove" data-domain="${escapeHtml(domain)}" title="Remove">
+      <button class="btn btn-remove" data-domain="${escapeHtml(domain)}" title="${t('remove')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"/>
           <line x1="6" y1="6" x2="18" y2="18"/>
@@ -175,18 +200,18 @@ async function removeDomain(domain) {
     if (response.success) {
       currentWhitelist = currentWhitelist.filter(d => d !== domain);
       renderWhitelist();
-      showToast('Domain removed from whitelist', 'success');
+      showToast(t('domainRemoved'), 'success');
     } else {
-      showToast('Failed to remove domain', 'error');
+      showToast(t('failedToRemoveDomain'), 'error');
     }
   } catch (error) {
-    showToast('Failed to remove domain', 'error');
+    showToast(t('failedToRemoveDomain'), 'error');
   }
 }
 
 // Reset statistics
 resetStatsBtn.addEventListener('click', async () => {
-  if (!confirm('Are you sure you want to reset all statistics?')) {
+  if (!confirm(t('confirmResetStats'))) {
     return;
   }
 
@@ -206,9 +231,9 @@ resetStatsBtn.addEventListener('click', async () => {
 
     totalSleptEl.textContent = '0';
     totalWokenEl.textContent = '0';
-    showToast('Statistics reset', 'success');
+    showToast(t('statisticsReset'), 'success');
   } catch (error) {
-    showToast('Failed to reset statistics', 'error');
+    showToast(t('failedToResetStatistics'), 'error');
   }
 });
 

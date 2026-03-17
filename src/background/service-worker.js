@@ -56,13 +56,13 @@ async function createContextMenus() {
   // Create new menus - use 'page' for right-click on page, 'action' for extension icon
   chrome.contextMenus.create({
     id: 'sleep-current-tab',
-    title: 'Sleep this tab',
+    title: chrome.i18n.getMessage('contextMenuSleep'),
     contexts: ['page', 'action']
   });
 
   chrome.contextMenus.create({
     id: 'sleep-other-tabs',
-    title: 'Sleep all other tabs',
+    title: chrome.i18n.getMessage('contextMenuSleepOthers'),
     contexts: ['page', 'action']
   });
 
@@ -74,13 +74,13 @@ async function createContextMenus() {
 
   chrome.contextMenus.create({
     id: 'add-to-whitelist',
-    title: 'Add domain to whitelist',
+    title: chrome.i18n.getMessage('contextMenuAddToWhitelist'),
     contexts: ['page', 'action']
   });
 
   chrome.contextMenus.create({
     id: 'remove-from-whitelist',
-    title: 'Remove domain from whitelist',
+    title: chrome.i18n.getMessage('contextMenuRemoveFromWhitelist'),
     contexts: ['page', 'action']
   });
 }

@@ -1,0 +1,256 @@
+{
+  "extName": {
+    "message": "Tab Sleep Tool",
+    "description": "Extension name"
+  },
+  "extDesc": {
+    "message": "A Chrome extension to hibernate inactive tabs to save memory and CPU resources",
+    "description": "Extension description"
+  },
+  "sleepCurrentTab": {
+    "message": "Sleep Current Tab",
+    "description": "Button text for sleeping current tab"
+  },
+  "sleepOtherTabs": {
+    "message": "Sleep All Other Tabs",
+    "description": "Button text for sleeping all other tabs"
+  },
+  "active": {
+    "message": "Active",
+    "description": "Active tabs tab label"
+  },
+  "sleeping": {
+    "message": "Sleeping",
+    "description": "Sleeping tabs tab label"
+  },
+  "loading": {
+    "message": "Loading...",
+    "description": "Loading text"
+  },
+  "noActiveTabs": {
+    "message": "No active tabs",
+    "description": "Empty state for active tabs"
+  },
+  "noSleepingTabs": {
+    "message": "No sleeping tabs",
+    "description": "Empty state for sleeping tabs"
+  },
+  "refresh": {
+    "message": "Refresh",
+    "description": "Refresh button text"
+  },
+  "settings": {
+    "message": "Settings",
+    "description": "Settings button text"
+  },
+  "wakeTab": {
+    "message": "Wake tab",
+    "description": "Wake tab button tooltip"
+  },
+  "sleepTab": {
+    "message": "Sleep tab",
+    "description": "Sleep tab button tooltip"
+  },
+  "tabSlept": {
+    "message": "Tab put to sleep",
+    "description": "Toast message when tab is slept"
+  },
+  "tabWoken": {
+    "message": "Tab woken up",
+    "description": "Toast message when tab is woken"
+  },
+  "tabsSlept": {
+    "message": "Slept $COUNT$ tabs, skipped $SKIPPED$",
+    "description": "Toast message when multiple tabs are slept",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      },
+      "skipped": {
+        "content": "$2",
+        "example": "2"
+      }
+    }
+  },
+  "listRefreshed": {
+    "message": "List refreshed",
+    "description": "Toast message when list is refreshed"
+  },
+  "failedToSleepTab": {
+    "message": "Failed to sleep tab",
+    "description": "Error message"
+  },
+  "failedToWakeTab": {
+    "message": "Failed to wake tab",
+    "description": "Error message"
+  },
+  "failedToLoadTabs": {
+    "message": "Failed to load tabs",
+    "description": "Error message"
+  },
+  "settingsTitle": {
+    "message": "Tab Sleep Tool Settings",
+    "description": "Settings page title"
+  },
+  "generalSettings": {
+    "message": "General Settings",
+    "description": "General settings section title"
+  },
+  "excludePinned": {
+    "message": "Exclude pinned tabs",
+    "description": "Setting label"
+  },
+  "excludePinnedDesc": {
+    "message": "Pinned tabs will never be put to sleep",
+    "description": "Setting description"
+  },
+  "excludeAudible": {
+    "message": "Exclude tabs playing audio",
+    "description": "Setting label"
+  },
+  "excludeAudibleDesc": {
+    "message": "Tabs that are currently playing audio won't be put to sleep",
+    "description": "Setting description"
+  },
+  "showBadge": {
+    "message": "Show badge counter",
+    "description": "Setting label"
+  },
+  "showBadgeDesc": {
+    "message": "Display the number of sleeping tabs on the extension icon",
+    "description": "Setting description"
+  },
+  "statePreservation": {
+    "message": "State Preservation",
+    "description": "State preservation section title"
+  },
+  "preserveScroll": {
+    "message": "Save scroll position",
+    "description": "Setting label"
+  },
+  "preserveScrollDesc": {
+    "message": "Remember scroll position when tab is woken up",
+    "description": "Setting description"
+  },
+  "preserveForm": {
+    "message": "Save form data",
+    "description": "Setting label"
+  },
+  "preserveFormDesc": {
+    "message": "Remember form inputs (except passwords) when tab is woken up",
+    "description": "Setting description"
+  },
+  "whitelistTitle": {
+    "message": "Whitelisted Domains",
+    "description": "Whitelist section title"
+  },
+  "whitelistDesc": {
+    "message": "These domains will never be put to sleep. Add domains that you want to keep active at all times.",
+    "description": "Whitelist section description"
+  },
+  "addDomain": {
+    "message": "Add Domain",
+    "description": "Add domain button text"
+  },
+  "domainPlaceholder": {
+    "message": "e.g., example.com",
+    "description": "Domain input placeholder"
+  },
+  "statistics": {
+    "message": "Statistics",
+    "description": "Statistics section title"
+  },
+  "totalSlept": {
+    "message": "Total Tabs Slept",
+    "description": "Statistics label"
+  },
+  "totalWoken": {
+    "message": "Total Tabs Woken",
+    "description": "Statistics label"
+  },
+  "resetStats": {
+    "message": "Reset Statistics",
+    "description": "Reset statistics button text"
+  },
+  "footerNote": {
+    "message": "Click on a sleeping tab to wake it up.",
+    "description": "Footer note in settings"
+  },
+  "untitled": {
+    "message": "Untitled",
+    "description": "Default title for tabs without title"
+  },
+  "contextMenuSleep": {
+    "message": "Sleep this tab",
+    "description": "Context menu item"
+  },
+  "contextMenuSleepOthers": {
+    "message": "Sleep other tabs",
+    "description": "Context menu item"
+  },
+  "contextMenuAddToWhitelist": {
+    "message": "Add domain to whitelist",
+    "description": "Context menu item"
+  },
+  "contextMenuRemoveFromWhitelist": {
+    "message": "Remove domain from whitelist",
+    "description": "Context menu item"
+  },
+  "settingsSaved": {
+    "message": "Settings saved",
+    "description": "Toast message"
+  },
+  "failedToSaveSettings": {
+    "message": "Failed to save settings",
+    "description": "Error message"
+  },
+  "pleaseEnterDomain": {
+    "message": "Please enter a domain",
+    "description": "Validation message"
+  },
+  "invalidDomainFormat": {
+    "message": "Invalid domain format",
+    "description": "Validation message"
+  },
+  "domainAlreadyInWhitelist": {
+    "message": "Domain already in whitelist",
+    "description": "Validation message"
+  },
+  "domainAdded": {
+    "message": "Domain added to whitelist",
+    "description": "Success message"
+  },
+  "failedToAddDomain": {
+    "message": "Failed to add domain",
+    "description": "Error message"
+  },
+  "noDomainsInWhitelist": {
+    "message": "No domains in whitelist",
+    "description": "Empty state"
+  },
+  "domainRemoved": {
+    "message": "Domain removed from whitelist",
+    "description": "Success message"
+  },
+  "failedToRemoveDomain": {
+    "message": "Failed to remove domain",
+    "description": "Error message"
+  },
+  "remove": {
+    "message": "Remove",
+    "description": "Remove button tooltip"
+  },
+  "confirmResetStats": {
+    "message": "Are you sure you want to reset all statistics?",
+    "description": "Confirmation dialog"
+  },
+  "statisticsReset": {
+    "message": "Statistics reset",
+    "description": "Success message"
+  },
+  "failedToResetStatistics": {
+    "message": "Failed to reset statistics",
+    "description": "Error message"
+  }
+}

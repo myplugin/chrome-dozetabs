@@ -1,6 +1,22 @@
 import { MESSAGE_TYPES } from '../utils/constants.js';
 import { isEmptyTabPage } from '../utils/whitelist.js';
 
+// i18n helper
+function t(key, substitutions) {
+  if (substitutions) {
+    return chrome.i18n.getMessage(key, substitutions);
+  }
+  return chrome.i18n.getMessage(key);
+}
+
+// Apply i18n to all elements with data-i18n attribute
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    el.textContent = t(key);
+  });
+}
+
 // DOM Elements
 const sleepCurrentTabBtn = document.getElementById('sleepCurrentTab');
 const sleepOtherTabsBtn = document.getElementById('sleepOtherTabs');
@@ -20,6 +36,10 @@ let whitelist = [];
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('[Tab Sleep] Popup opened');
+
+  // Apply translations
+  applyTranslations();
+
   await loadTabs();
 
   // Setup view tab click handlers
@@ -52,7 +72,7 @@ function switchView(view) {
 // Load tabs list
 async function loadTabs() {
   try {
-    tabsListEl.innerHTML = '<div class="loading">Loading...</div>';
+    tabsListEl.innerHTML = `<div class="loading">${t('loading')}</div>`;
 
     allTabs = await chrome.tabs.query({ currentWindow: true });
     [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -76,7 +96,7 @@ async function loadTabs() {
 
   } catch (error) {
     console.error('[Tab Sleep] Failed to load tabs:', error);
-    tabsListEl.innerHTML = '<div class="loading">Failed to load tabs</div>';
+    tabsListEl.innerHTML = `<div class="loading">${t('failedToLoadTabs')}</div>`;
   }
 }
 
@@ -88,8 +108,8 @@ function renderTabsList() {
 
   if (filteredTabs.length === 0) {
     const emptyMessage = currentView === 'active'
-      ? 'No active tabs'
-      : 'No sleeping tabs';
+      ? t('noActiveTabs')
+      : t('noSleepingTabs');
     tabsListEl.innerHTML = `<div class="empty-state">${emptyMessage}</div>`;
     return;
   }
@@ -113,6 +133,13 @@ function renderTabsList() {
     });
   });
 
+  // Handle favicon load errors
+  tabsListEl.querySelectorAll('.tab-favicon').forEach(img => {
+    img.addEventListener('error', () => {
+      img.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#5f6368"><circle cx="12" cy="12" r="10"/></svg>');
+    });
+  });
+
   // Add sleep button handlers
   tabsListEl.querySelectorAll('.sleep-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -132,6 +159,15 @@ function renderTabsList() {
   });
 }
 
+// Lucide Icons as inline SVG strings
+const ICONS = {
+  moon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+  sun: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+  pin: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>',
+  volume: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+  lock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+};
+
 // Create tab item HTML
 function createTabItem(tab) {
   const isActive = tab.id === currentTab?.id;
@@ -142,38 +178,22 @@ function createTabItem(tab) {
 
   let badge = '';
   if (tab.pinned) {
-    badge = '<span class="tab-badge pinned">📌</span>';
+    badge = `<span class="tab-badge pinned">${ICONS.pin}</span>`;
   } else if (tab.audible) {
-    badge = '<span class="tab-badge audible">🔊</span>';
+    badge = `<span class="tab-badge audible">${ICONS.volume}</span>`;
   } else if (isProtected) {
-    badge = '<span class="tab-badge protected">🔒</span>';
+    badge = `<span class="tab-badge protected">${ICONS.lock}</span>`;
   }
 
   const actionBtn = isSleeping
-    ? `<button class="tab-action-btn wake-btn" data-tab-id="${tab.id}" title="Wake tab">
-         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-           <circle cx="12" cy="12" r="5"/>
-           <line x1="12" y1="1" x2="12" y2="3"/>
-           <line x1="12" y1="21" x2="12" y2="23"/>
-           <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-           <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-           <line x1="1" y1="12" x2="3" y2="12"/>
-           <line x1="21" y1="12" x2="23" y2="12"/>
-           <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-         </svg>
-       </button>`
-    : `<button class="tab-action-btn sleep-btn" data-tab-id="${tab.id}" title="Sleep tab" ${isProtected ? 'disabled' : ''}>
-         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-         </svg>
-       </button>`;
+    ? `<button class="tab-action-btn wake-btn" data-tab-id="${tab.id}" title="${t('wakeTab')}">${ICONS.sun}</button>`
+    : `<button class="tab-action-btn sleep-btn" data-tab-id="${tab.id}" title="${t('sleepTab')}" ${isProtected ? 'disabled' : ''}>${ICONS.moon}</button>`;
 
   return `
     <div class="tab-item ${isActive ? 'active' : ''} ${isSleeping ? 'sleeping' : ''}" data-tab-id="${tab.id}">
       <img class="tab-favicon" src="${favicon}" alt="">
       <div class="tab-info">
-        <div class="tab-title">${escapeHtml(tab.title || 'Untitled')}</div>
+        <div class="tab-title">${escapeHtml(tab.title || t('untitled'))}</div>
         <div class="tab-url">${escapeHtml(getShortUrl(tab.url))}</div>
       </div>
       ${badge}
@@ -202,10 +222,10 @@ sleepOtherTabsBtn.addEventListener('click', async () => {
     });
 
     if (result && (result.slept !== undefined || result.success)) {
-      showToast(`Slept ${result.slept || result.discarded || 0} tabs, skipped ${result.skipped || 0}`);
+      showToast(t('tabsSlept', [String(result.slept || result.discarded || 0), String(result.skipped || 0)]));
       await loadTabs();
     } else {
-      showToast(result?.reason || 'Failed to sleep tabs', true);
+      showToast(result?.reason || t('failedToSleepTab'), true);
     }
   }
 });
@@ -218,10 +238,10 @@ async function handleSleepTab(tabId) {
   });
 
   if (result && result.success) {
-    showToast('Tab put to sleep 💤');
+    showToast(t('tabSlept'));
     await loadTabs();
   } else {
-    showToast(result?.reason || 'Failed to sleep tab', true);
+    showToast(result?.reason || t('failedToSleepTab'), true);
   }
 }
 
@@ -229,17 +249,17 @@ async function handleSleepTab(tabId) {
 async function handleWakeTab(tabId) {
   try {
     await chrome.tabs.reload(tabId);
-    showToast('Tab woken up ☀️');
+    showToast(t('tabWoken'));
     await loadTabs();
   } catch (error) {
-    showToast('Failed to wake tab', true);
+    showToast(t('failedToWakeTab'), true);
   }
 }
 
 // Refresh button
 refreshListBtn.addEventListener('click', async () => {
   await loadTabs();
-  showToast('List refreshed');
+  showToast(t('listRefreshed'));
 });
 
 // Open options page

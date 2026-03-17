@@ -1,0 +1,256 @@
+{
+  "extName": {
+    "message": "标签页休眠工具",
+    "description": "扩展名称"
+  },
+  "extDesc": {
+    "message": "让不活跃的标签页休眠，节省内存和 CPU 资源",
+    "description": "扩展描述"
+  },
+  "sleepCurrentTab": {
+    "message": "休眠当前标签页",
+    "description": "休眠当前标签页按钮文本"
+  },
+  "sleepOtherTabs": {
+    "message": "休眠其他所有标签页",
+    "description": "休眠其他所有标签页按钮文本"
+  },
+  "active": {
+    "message": "活跃",
+    "description": "活跃标签页标签"
+  },
+  "sleeping": {
+    "message": "休眠中",
+    "description": "休眠标签页标签"
+  },
+  "loading": {
+    "message": "加载中...",
+    "description": "加载文本"
+  },
+  "noActiveTabs": {
+    "message": "没有活跃的标签页",
+    "description": "活跃标签页为空状态"
+  },
+  "noSleepingTabs": {
+    "message": "没有休眠的标签页",
+    "description": "休眠标签页为空状态"
+  },
+  "refresh": {
+    "message": "刷新",
+    "description": "刷新按钮文本"
+  },
+  "settings": {
+    "message": "设置",
+    "description": "设置按钮文本"
+  },
+  "wakeTab": {
+    "message": "唤醒标签页",
+    "description": "唤醒标签页按钮提示"
+  },
+  "sleepTab": {
+    "message": "休眠标签页",
+    "description": "休眠标签页按钮提示"
+  },
+  "tabSlept": {
+    "message": "标签页已休眠",
+    "description": "标签页休眠成功提示"
+  },
+  "tabWoken": {
+    "message": "标签页已唤醒",
+    "description": "标签页唤醒成功提示"
+  },
+  "tabsSlept": {
+    "message": "已休眠 $COUNT$ 个标签页，跳过 $SKIPPED$ 个",
+    "description": "批量休眠标签页提示",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      },
+      "skipped": {
+        "content": "$2",
+        "example": "2"
+      }
+    }
+  },
+  "listRefreshed": {
+    "message": "列表已刷新",
+    "description": "列表刷新成功提示"
+  },
+  "failedToSleepTab": {
+    "message": "休眠标签页失败",
+    "description": "错误提示"
+  },
+  "failedToWakeTab": {
+    "message": "唤醒标签页失败",
+    "description": "错误提示"
+  },
+  "failedToLoadTabs": {
+    "message": "加载标签页失败",
+    "description": "错误提示"
+  },
+  "settingsTitle": {
+    "message": "标签页休眠工具 - 设置",
+    "description": "设置页面标题"
+  },
+  "generalSettings": {
+    "message": "常规设置",
+    "description": "常规设置部分标题"
+  },
+  "excludePinned": {
+    "message": "排除固定标签页",
+    "description": "设置标签"
+  },
+  "excludePinnedDesc": {
+    "message": "固定的标签页将不会被休眠",
+    "description": "设置描述"
+  },
+  "excludeAudible": {
+    "message": "排除正在播放音频的标签页",
+    "description": "设置标签"
+  },
+  "excludeAudibleDesc": {
+    "message": "正在播放音频的标签页将不会被休眠",
+    "description": "设置描述"
+  },
+  "showBadge": {
+    "message": "显示徽章计数",
+    "description": "设置标签"
+  },
+  "showBadgeDesc": {
+    "message": "在扩展图标上显示休眠标签页的数量",
+    "description": "设置描述"
+  },
+  "statePreservation": {
+    "message": "状态保存",
+    "description": "状态保存部分标题"
+  },
+  "preserveScroll": {
+    "message": "保存滚动位置",
+    "description": "设置标签"
+  },
+  "preserveScrollDesc": {
+    "message": "唤醒标签页时恢复滚动位置",
+    "description": "设置描述"
+  },
+  "preserveForm": {
+    "message": "保存表单数据",
+    "description": "设置标签"
+  },
+  "preserveFormDesc": {
+    "message": "唤醒标签页时恢复表单输入（密码除外）",
+    "description": "设置描述"
+  },
+  "whitelistTitle": {
+    "message": "白名单域名",
+    "description": "白名单部分标题"
+  },
+  "whitelistDesc": {
+    "message": "这些域名将永远不会被休眠。添加您希望始终保持活跃的域名。",
+    "description": "白名单部分描述"
+  },
+  "addDomain": {
+    "message": "添加域名",
+    "description": "添加域名按钮文本"
+  },
+  "domainPlaceholder": {
+    "message": "例如：example.com",
+    "description": "域名输入框占位符"
+  },
+  "statistics": {
+    "message": "统计信息",
+    "description": "统计信息部分标题"
+  },
+  "totalSlept": {
+    "message": "已休眠标签页总数",
+    "description": "统计标签"
+  },
+  "totalWoken": {
+    "message": "已唤醒标签页总数",
+    "description": "统计标签"
+  },
+  "resetStats": {
+    "message": "重置统计",
+    "description": "重置统计按钮文本"
+  },
+  "footerNote": {
+    "message": "点击休眠的标签页可以唤醒它。",
+    "description": "设置页脚注释"
+  },
+  "untitled": {
+    "message": "无标题",
+    "description": "没有标题的标签页默认标题"
+  },
+  "contextMenuSleep": {
+    "message": "休眠此标签页",
+    "description": "右键菜单项"
+  },
+  "contextMenuSleepOthers": {
+    "message": "休眠其他标签页",
+    "description": "右键菜单项"
+  },
+  "contextMenuAddToWhitelist": {
+    "message": "添加域名到白名单",
+    "description": "右键菜单项"
+  },
+  "contextMenuRemoveFromWhitelist": {
+    "message": "从白名单移除域名",
+    "description": "右键菜单项"
+  },
+  "settingsSaved": {
+    "message": "设置已保存",
+    "description": "成功提示"
+  },
+  "failedToSaveSettings": {
+    "message": "保存设置失败",
+    "description": "错误提示"
+  },
+  "pleaseEnterDomain": {
+    "message": "请输入域名",
+    "description": "验证提示"
+  },
+  "invalidDomainFormat": {
+    "message": "域名格式无效",
+    "description": "验证提示"
+  },
+  "domainAlreadyInWhitelist": {
+    "message": "域名已在白名单中",
+    "description": "验证提示"
+  },
+  "domainAdded": {
+    "message": "域名已添加到白名单",
+    "description": "成功提示"
+  },
+  "failedToAddDomain": {
+    "message": "添加域名失败",
+    "description": "错误提示"
+  },
+  "noDomainsInWhitelist": {
+    "message": "白名单中没有域名",
+    "description": "空状态"
+  },
+  "domainRemoved": {
+    "message": "域名已从白名单中移除",
+    "description": "成功提示"
+  },
+  "failedToRemoveDomain": {
+    "message": "移除域名失败",
+    "description": "错误提示"
+  },
+  "remove": {
+    "message": "移除",
+    "description": "移除按钮提示"
+  },
+  "confirmResetStats": {
+    "message": "确定要重置所有统计数据吗？",
+    "description": "确认对话框"
+  },
+  "statisticsReset": {
+    "message": "统计数据已重置",
+    "description": "成功提示"
+  },
+  "failedToResetStatistics": {
+    "message": "重置统计数据失败",
+    "description": "错误提示"
+  }
+}

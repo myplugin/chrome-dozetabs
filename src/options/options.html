@@ -10,21 +10,22 @@
   <div class="options-container">
     <header class="header">
       <h1>
-        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        <!-- Lucide Moon icon -->
+        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
         </svg>
-        Tab Sleep Tool Settings
+        <span data-i18n="settingsTitle">Tab Sleep Tool Settings</span>
       </h1>
     </header>
 
     <main class="main-content">
       <!-- General Settings -->
       <section class="settings-section">
-        <h2>General Settings</h2>
+        <h2 data-i18n="generalSettings">General Settings</h2>
         <div class="setting-item">
           <div class="setting-info">
-            <label for="excludePinned">Exclude pinned tabs</label>
-            <p class="setting-description">Pinned tabs will never be put to sleep</p>
+            <label for="excludePinned" data-i18n="excludePinned">Exclude pinned tabs</label>
+            <p class="setting-description" data-i18n="excludePinnedDesc">Pinned tabs will never be put to sleep</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="excludePinned" checked>
@@ -33,8 +34,8 @@
         </div>
         <div class="setting-item">
           <div class="setting-info">
-            <label for="excludeAudible">Exclude tabs playing audio</label>
-            <p class="setting-description">Tabs that are currently playing audio won't be put to sleep</p>
+            <label for="excludeAudible" data-i18n="excludeAudible">Exclude tabs playing audio</label>
+            <p class="setting-description" data-i18n="excludeAudibleDesc">Tabs that are currently playing audio won't be put to sleep</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="excludeAudible" checked>
@@ -43,8 +44,8 @@
         </div>
         <div class="setting-item">
           <div class="setting-info">
-            <label for="showBadge">Show badge counter</label>
-            <p class="setting-description">Display the number of sleeping tabs on the extension icon</p>
+            <label for="showBadge" data-i18n="showBadge">Show badge counter</label>
+            <p class="setting-description" data-i18n="showBadgeDesc">Display the number of sleeping tabs on the extension icon</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="showBadge" checked>
@@ -55,11 +56,11 @@
 
       <!-- State Preservation -->
       <section class="settings-section">
-        <h2>State Preservation</h2>
+        <h2 data-i18n="statePreservation">State Preservation</h2>
         <div class="setting-item">
           <div class="setting-info">
-            <label for="preserveScroll">Save scroll position</label>
-            <p class="setting-description">Remember scroll position when tab is woken up</p>
+            <label for="preserveScroll" data-i18n="preserveScroll">Save scroll position</label>
+            <p class="setting-description" data-i18n="preserveScrollDesc">Remember scroll position when tab is woken up</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="preserveScroll" checked>
@@ -68,8 +69,8 @@
         </div>
         <div class="setting-item">
           <div class="setting-info">
-            <label for="preserveForm">Save form data</label>
-            <p class="setting-description">Remember form inputs (except passwords) when tab is woken up</p>
+            <label for="preserveForm" data-i18n="preserveForm">Save form data</label>
+            <p class="setting-description" data-i18n="preserveFormDesc">Remember form inputs (except passwords) when tab is woken up</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="preserveForm" checked>
@@ -80,14 +81,14 @@
 
       <!-- Whitelist -->
       <section class="settings-section">
-        <h2>Whitelisted Domains</h2>
-        <p class="section-description">
+        <h2 data-i18n="whitelistTitle">Whitelisted Domains</h2>
+        <p class="section-description" data-i18n="whitelistDesc">
           These domains will never be put to sleep. Add domains that you want to keep active at all times.
         </p>
 
         <div class="whitelist-add">
-          <input type="text" id="newDomain" placeholder="e.g., example.com" />
-          <button id="addDomain" class="btn btn-primary">Add Domain</button>
+          <input type="text" id="newDomain" data-i18n-placeholder="domainPlaceholder" placeholder="e.g., example.com" />
+          <button id="addDomain" class="btn btn-primary" data-i18n="addDomain">Add Domain</button>
         </div>
 
         <div class="whitelist-list" id="whitelistList">
@@ -97,24 +98,24 @@
 
       <!-- Statistics -->
       <section class="settings-section">
-        <h2>Statistics</h2>
+        <h2 data-i18n="statistics">Statistics</h2>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-value" id="totalDiscarded">0</div>
-            <div class="stat-label">Total Tabs Slept</div>
+            <div class="stat-label" data-i18n="totalSlept">Total Tabs Slept</div>
           </div>
           <div class="stat-card">
             <div class="stat-value" id="totalWoken">0</div>
-            <div class="stat-label">Total Tabs Woken</div>
+            <div class="stat-label" data-i18n="totalWoken">Total Tabs Woken</div>
           </div>
         </div>
-        <button id="resetStats" class="btn btn-secondary">Reset Statistics</button>
+        <button id="resetStats" class="btn btn-secondary" data-i18n="resetStats">Reset Statistics</button>
       </section>
     </main>
 
     <footer class="footer">
       <p>Tab Sleep Tool v1.0.0</p>
-      <p class="footer-note">Click on a sleeping tab to wake it up.</p>
+      <p class="footer-note" data-i18n="footerNote">Click on a sleeping tab to wake it up.</p>
     </footer>
   </div>
 
