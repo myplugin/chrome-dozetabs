@@ -8,7 +8,8 @@
     "tabs",
     "storage",
     "contextMenus",
-    "scripting"
+    "scripting",
+    "alarms"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -33,6 +34,22 @@
     "128": "assets/icons/icon128.png"
   },
   "options_page": "options/options.html",
+  "commands": {
+    "sleep-current-tab": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Alt+S"
+      },
+      "description": "__MSG_commandSleepCurrentTab__"
+    },
+    "sleep-other-tabs": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "__MSG_commandSleepOtherTabs__"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

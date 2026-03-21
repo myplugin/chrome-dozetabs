@@ -17,6 +17,7 @@ import {
   initializeStorage,
   lockTab,
   unlockTab,
+  isTabLocked,
   getLockedTabs
 } from '../utils/storage.js';
 import {
@@ -48,10 +49,22 @@ let batchOperation = {
   aborted: false
 };
 
+// Auto-sleep state
+let autoSleepState = {
+  lastActiveTime: {}, // tabId -> timestamp
+  isEnabled: false,
+  timeoutMinutes: 30
+};
+
+// Constants for auto-sleep
+const AUTO_SLEEP_CHECK_INTERVAL = 1; // Check every 1 minute
+const AUTO_SLEEP_ALARM_NAME = 'autoSleepCheck';
+
 // Initialize storage on install
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeStorage();
   await createContextMenus();
+  await setupAutoSleep();
   console.log('Tab Sleep Tool installed');
 });
 
@@ -60,6 +73,7 @@ chrome.runtime.onStartup.addListener(async () => {
   await initializeStorage();
   await createContextMenus();
   await updateBadge();
+  await setupAutoSleep();
 });
 
 // Create context menus
@@ -117,9 +131,31 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
-// Handle tab activation (waking up sleeping tabs)
+// Handle keyboard shortcuts (commands)
+chrome.commands.onCommand.addListener(async (command) => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) return;
+
+    switch (command) {
+      case 'sleep-current-tab':
+        await handleSleepTab(tab.id);
+        break;
+      case 'sleep-other-tabs':
+        await handleSleepAllOther(tab.id);
+        break;
+    }
+  } catch (error) {
+    console.error('[Tab Sleep] Command handler error:', error);
+  }
+});
+
+// Handle tab activation (waking up sleeping tabs and tracking activity)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await getTab(activeInfo.tabId);
+
+  // Update last active time for auto-sleep
+  autoSleepState.lastActiveTime[activeInfo.tabId] = Date.now();
 
   if (tab.discarded) {
     // Tab is being woken up
@@ -227,6 +263,12 @@ async function handleMessage(message, sender) {
         return { success: true, message: 'Batch operation aborted' };
       }
       return { success: false, message: 'No batch operation running' };
+
+    case MESSAGE_TYPES.AUTO_SLEEP_STATUS:
+      return {
+        enabled: autoSleepState.isEnabled,
+        timeoutMinutes: autoSleepState.timeoutMinutes
+      };
 
     default:
       return { error: 'Unknown message type' };
@@ -553,6 +595,91 @@ async function updateBadge() {
     await chrome.action.setBadgeBackgroundColor({ color: '#4285f4' });
   }
 }
+
+// ============ Auto Sleep Functions ============
+
+/**
+ * Setup auto-sleep alarm based on settings
+ */
+async function setupAutoSleep() {
+  const settings = await getSettings();
+  autoSleepState.isEnabled = settings.autoSleepEnabled;
+  autoSleepState.timeoutMinutes = settings.autoSleepTimeout || 30;
+
+  // Clear existing alarm
+  await chrome.alarms.clear(AUTO_SLEEP_ALARM_NAME);
+
+  if (settings.autoSleepEnabled) {
+    // Create alarm to check every minute
+    await chrome.alarms.create(AUTO_SLEEP_ALARM_NAME, {
+      periodInMinutes: AUTO_SLEEP_CHECK_INTERVAL
+    });
+    console.log('[Tab Sleep] Auto-sleep enabled with timeout:', autoSleepState.timeoutMinutes, 'minutes');
+  } else {
+    console.log('[Tab Sleep] Auto-sleep disabled');
+  }
+}
+
+/**
+ * Handle auto-sleep alarm - check for idle tabs
+ */
+async function handleAutoSleepCheck() {
+  if (!autoSleepState.isEnabled) {
+    return;
+  }
+
+  const now = Date.now();
+  const timeoutMs = autoSleepState.timeoutMinutes * 60 * 1000;
+
+  try {
+    const tabs = await queryTabs();
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTabId = activeTab?.id;
+
+    for (const tab of tabs) {
+      // Skip already discarded tabs
+      if (tab.discarded) continue;
+
+      // Skip active tab
+      if (tab.id === activeTabId) continue;
+
+      // Get last active time (default to now if not tracked)
+      const lastActive = autoSleepState.lastActiveTime[tab.id] || now;
+      const idleTime = now - lastActive;
+
+      // Check if tab has been idle long enough
+      if (idleTime >= timeoutMs) {
+        const { canSleep } = await canSleepTab(tab);
+        if (canSleep) {
+          console.log('[Tab Sleep] Auto-sleeping tab:', tab.title);
+          await handleSleepTab(tab.id, { skipBadgeUpdate: true, skipStateCapture: true });
+        }
+      }
+    }
+
+    // Update badge after processing
+    await updateBadge();
+  } catch (error) {
+    console.error('[Tab Sleep] Auto-sleep check error:', error);
+  }
+}
+
+// Listen for alarm
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === AUTO_SLEEP_ALARM_NAME) {
+    await handleAutoSleepCheck();
+  }
+});
+
+// Listen for settings changes to update auto-sleep
+chrome.storage.onChanged.addListener(async (changes, areaName) => {
+  if (areaName === 'local' && changes.settings) {
+    const newSettings = changes.settings.newValue;
+    if (newSettings?.autoSleepEnabled !== undefined) {
+      await setupAutoSleep();
+    }
+  }
+});
 
 // Log service worker activation
 console.log('Tab Sleep Tool service worker loaded');

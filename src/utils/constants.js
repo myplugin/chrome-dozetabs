@@ -34,7 +34,9 @@ export const DEFAULT_SETTINGS = {
   preserveFormData: true,        // Save form data before sleeping
   preserveScrollPosition: true,  // Save scroll position before sleeping
   showBadge: true,               // Show badge with sleeping tab count
-  confirmSleepAll: true          // Confirm before sleeping all other tabs
+  confirmSleepAll: true,         // Confirm before sleeping all other tabs
+  autoSleepEnabled: false,       // Auto sleep inactive tabs
+  autoSleepTimeout: 30           // Minutes of inactivity before auto sleep
 };
 
 // Default statistics
@@ -73,9 +75,11 @@ export const MESSAGE_TYPES = {
   FETCH_FAVICON: 'fetchFavicon',
   LOCK_TAB: 'lockTab',
   UNLOCK_TAB: 'unlockTab',
+  IS_TAB_LOCKED: 'isTabLocked',
   GET_LOCKED_TABS: 'getLockedTabs',
   GET_BATCH_STATUS: 'getBatchStatus',
-  ABORT_BATCH: 'abortBatch'
+  ABORT_BATCH: 'abortBatch',
+  AUTO_SLEEP_STATUS: 'autoSleepStatus'
 };
 
 // Icon paths

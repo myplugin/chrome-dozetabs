@@ -1,0 +1,23 @@
+{
+  "name": "tab-sleep-tool",
+  "version": "1.0.0",
+  "description": "A Chrome extension that hibernates inactive tabs to save memory",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "tab",
+    "sleep",
+    "memory",
+    "suspend"
+  ],
+  "author": "",
+  "license": "MIT"
+}

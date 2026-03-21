@@ -284,5 +284,33 @@
   "failedToLockTab": {
     "message": "Failed to lock/unlock tab",
     "description": "Error message when locking/unlocking fails"
+  },
+  "autoSleepTitle": {
+    "message": "Auto Sleep",
+    "description": "Auto sleep section title"
+  },
+  "autoSleepEnabled": {
+    "message": "Enable auto sleep",
+    "description": "Setting label"
+  },
+  "autoSleepEnabledDesc": {
+    "message": "Automatically sleep tabs after a period of inactivity",
+    "description": "Setting description"
+  },
+  "autoSleepTimeout": {
+    "message": "Sleep after (minutes)",
+    "description": "Setting label"
+  },
+  "autoSleepTimeoutDesc": {
+    "message": "Tabs will be slept after being inactive for this duration",
+    "description": "Setting description"
+  },
+  "commandSleepCurrentTab": {
+    "message": "Sleep current tab",
+    "description": "Keyboard shortcut description"
+  },
+  "commandSleepOtherTabs": {
+    "message": "Sleep all other tabs",
+    "description": "Keyboard shortcut description"
   }
 }

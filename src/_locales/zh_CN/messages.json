@@ -284,5 +284,33 @@
   "failedToLockTab": {
     "message": "锁定/解锁标签页失败",
     "description": "锁定/解锁失败时的错误提示"
+  },
+  "autoSleepTitle": {
+    "message": "自动休眠",
+    "description": "自动休眠部分标题"
+  },
+  "autoSleepEnabled": {
+    "message": "启用自动休眠",
+    "description": "设置标签"
+  },
+  "autoSleepEnabledDesc": {
+    "message": "在标签页不活跃一段时间后自动休眠",
+    "description": "设置描述"
+  },
+  "autoSleepTimeout": {
+    "message": "休眠时间（分钟）",
+    "description": "设置标签"
+  },
+  "autoSleepTimeoutDesc": {
+    "message": "标签页不活跃达到此时间后将被休眠",
+    "description": "设置描述"
+  },
+  "commandSleepCurrentTab": {
+    "message": "休眠当前标签页",
+    "description": "键盘快捷键描述"
+  },
+  "commandSleepOtherTabs": {
+    "message": "休眠其他所有标签页",
+    "description": "键盘快捷键描述"
   }
 }

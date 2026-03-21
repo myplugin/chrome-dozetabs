@@ -6,13 +6,17 @@ A Chrome extension that allows you to hibernate inactive tabs to save memory and
 
 - **Sleep Current Tab**: Quickly put the active tab to sleep with one click
 - **Sleep All Other Tabs**: Hibernate all tabs except the current one
+- **Auto Sleep**: Automatically sleep tabs after configurable inactivity period
 - **Auto Wake**: Click on a sleeping tab to automatically reload it
 - **State Preservation**: Optionally save scroll position and form data
 - **Whitelist**: Protect important domains from being put to sleep
+- **Tab Lock**: Lock individual tabs to prevent them from being slept (even during batch operations)
 - **Smart Filtering**: Automatically excludes pinned tabs, tabs playing audio, and Chrome internal pages
 - **Context Menu**: Right-click to quickly sleep tabs or add domains to whitelist
+- **Keyboard Shortcuts**: Use Alt+S to sleep current tab, Alt+Shift+S to sleep all other tabs
 - **Statistics**: Track how many tabs you've put to sleep
 - **Badge Counter**: See the number of sleeping tabs at a glance
+- **Batch Operation Control**: Abort sleep-all operations mid-progress
 
 ## Installation
 
@@ -47,7 +51,11 @@ Click the extension icon to open the popup:
 
 - **Sleep Current Tab**: Button to sleep the active tab
 - **Sleep All Other Tabs**: Button to sleep all tabs except the current one
-- **Tab List**: View all tabs in the current window with sleep/wake buttons
+  - Shows progress during batch operations
+  - Can abort mid-operation with the "Abort" button
+- **Tab List**: View all tabs in the current window with sleep/wake/lock buttons
+  - Toggle between Active and Sleeping views
+  - Lock individual tabs to prevent sleeping
 - **Settings**: Link to open the full settings page
 
 ### Right-Click Menu
@@ -65,6 +73,20 @@ Simply click on a sleeping tab to wake it up. The page will reload and:
 - Scroll position will be restored (if enabled)
 - Form data will be restored (if enabled)
 
+### Keyboard Shortcuts
+
+The extension supports keyboard shortcuts for quick actions:
+
+| Shortcut | Action |
+|----------|--------|
+| `Alt+S` | Sleep current tab |
+| `Alt+Shift+S` | Sleep all other tabs |
+
+You can customize these shortcuts in Chrome:
+1. Go to `chrome://extensions/shortcuts`
+2. Find "Tab Sleep Tool"
+3. Click the pencil icon to change the shortcut
+
 ## Settings
 
 Access settings by:
@@ -78,6 +100,15 @@ Access settings by:
 | Exclude pinned tabs | Pinned tabs will never be put to sleep | On |
 | Exclude tabs playing audio | Tabs with active audio won't be slept | On |
 | Show badge counter | Display sleeping tab count on icon | On |
+
+### Auto Sleep
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Enable auto sleep | Automatically sleep tabs after inactivity | Off |
+| Sleep after (minutes) | Minutes of inactivity before auto sleep | 30 |
+
+Note: Auto sleep respects all exclusion rules (pinned, audio, whitelist, locked tabs).
 
 ### State Preservation
 
@@ -99,6 +130,17 @@ Manage domains that should never be put to sleep. Default whitelist includes:
 - Notion (notion.so)
 - Figma (figma.com)
 - And more...
+
+### Tab Lock
+
+Lock individual tabs to prevent them from being put to sleep:
+
+- **Lock a tab**: Click the lock icon in the popup tab list
+- **Unlock a tab**: Click the lock icon again to unlock
+- **Behavior**: Locked tabs are protected from both manual and batch sleep operations
+- **Indicator**: Locked tabs show a lock icon in the popup
+
+Tab lock is useful when you have specific tabs you want to keep active at all times, regardless of whitelist settings.
 
 ## How It Works
 

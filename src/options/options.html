@@ -79,6 +79,28 @@
         </div>
       </section>
 
+      <!-- Auto Sleep -->
+      <section class="settings-section">
+        <h2 data-i18n="autoSleepTitle">Auto Sleep</h2>
+        <div class="setting-item">
+          <div class="setting-info">
+            <label for="autoSleepEnabled" data-i18n="autoSleepEnabled">Enable auto sleep</label>
+            <p class="setting-description" data-i18n="autoSleepEnabledDesc">Automatically sleep tabs after a period of inactivity</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="autoSleepEnabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item" id="autoSleepTimeoutContainer">
+          <div class="setting-info">
+            <label for="autoSleepTimeout" data-i18n="autoSleepTimeout">Sleep after (minutes)</label>
+            <p class="setting-description" data-i18n="autoSleepTimeoutDesc">Tabs will be slept after being inactive for this duration</p>
+          </div>
+          <input type="number" id="autoSleepTimeout" min="1" max="120" value="30" class="number-input">
+        </div>
+      </section>
+
       <!-- Whitelist -->
       <section class="settings-section">
         <h2 data-i18n="whitelistTitle">Whitelisted Domains</h2>

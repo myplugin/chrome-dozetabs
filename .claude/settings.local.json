@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mv manifest.json src/)",
       "Bash(mv assets:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(npm test:*)"
     ]
   }
 }

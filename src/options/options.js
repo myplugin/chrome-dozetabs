@@ -28,6 +28,9 @@ const excludeAudible = document.getElementById('excludeAudible');
 const showBadge = document.getElementById('showBadge');
 const preserveScroll = document.getElementById('preserveScroll');
 const preserveForm = document.getElementById('preserveForm');
+const autoSleepEnabled = document.getElementById('autoSleepEnabled');
+const autoSleepTimeout = document.getElementById('autoSleepTimeout');
+const autoSleepTimeoutContainer = document.getElementById('autoSleepTimeoutContainer');
 const newDomainInput = document.getElementById('newDomain');
 const addDomainBtn = document.getElementById('addDomain');
 const whitelistList = document.getElementById('whitelistList');
@@ -61,9 +64,18 @@ async function loadSettings() {
     showBadge.checked = settings.showBadge;
     preserveScroll.checked = settings.preserveScrollPosition;
     preserveForm.checked = settings.preserveFormData;
+    autoSleepEnabled.checked = settings.autoSleepEnabled || false;
+    autoSleepTimeout.value = settings.autoSleepTimeout || 30;
+    updateAutoSleepTimeoutVisibility();
   } catch (error) {
     console.error('Failed to load settings:', error);
   }
+}
+
+// Update auto-sleep timeout visibility
+function updateAutoSleepTimeoutVisibility() {
+  autoSleepTimeoutContainer.style.opacity = autoSleepEnabled.checked ? '1' : '0.5';
+  autoSleepTimeout.disabled = !autoSleepEnabled.checked;
 }
 
 // Load whitelist
@@ -91,14 +103,16 @@ async function loadStatistics() {
 }
 
 // Save settings when toggles change
-[excludePinned, excludeAudible, showBadge, preserveScroll, preserveForm].forEach(toggle => {
+[excludePinned, excludeAudible, showBadge, preserveScroll, preserveForm, autoSleepEnabled].forEach(toggle => {
   toggle.addEventListener('change', async () => {
     const settings = {
       excludePinnedTabs: excludePinned.checked,
       excludeAudibleTabs: excludeAudible.checked,
       showBadge: showBadge.checked,
       preserveScrollPosition: preserveScroll.checked,
-      preserveFormData: preserveForm.checked
+      preserveFormData: preserveForm.checked,
+      autoSleepEnabled: autoSleepEnabled.checked,
+      autoSleepTimeout: parseInt(autoSleepTimeout.value, 10) || 30
     };
 
     try {
@@ -107,10 +121,39 @@ async function loadStatistics() {
         payload: { settings }
       });
       showToast(t('settingsSaved'), 'success');
+      updateAutoSleepTimeoutVisibility();
     } catch (error) {
       showToast(t('failedToSaveSettings'), 'error');
     }
   });
+});
+
+// Save auto-sleep timeout when changed
+autoSleepTimeout.addEventListener('change', async () => {
+  let timeout = parseInt(autoSleepTimeout.value, 10);
+  if (timeout < 1) timeout = 1;
+  if (timeout > 120) timeout = 120;
+  autoSleepTimeout.value = timeout;
+
+  const settings = {
+    excludePinnedTabs: excludePinned.checked,
+    excludeAudibleTabs: excludeAudible.checked,
+    showBadge: showBadge.checked,
+    preserveScrollPosition: preserveScroll.checked,
+    preserveFormData: preserveForm.checked,
+    autoSleepEnabled: autoSleepEnabled.checked,
+    autoSleepTimeout: timeout
+  };
+
+  try {
+    await sendMessage({
+      type: MESSAGE_TYPES.UPDATE_SETTINGS,
+      payload: { settings }
+    });
+    showToast(t('settingsSaved'), 'success');
+  } catch (error) {
+    showToast(t('failedToSaveSettings'), 'error');
+  }
 });
 
 // Add domain to whitelist
