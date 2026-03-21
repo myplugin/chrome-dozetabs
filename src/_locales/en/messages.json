@@ -73,6 +73,14 @@
       }
     }
   },
+  "batchAborted": {
+    "message": "Batch operation aborted",
+    "description": "Toast message when batch operation is aborted"
+  },
+  "clickToAbort": {
+    "message": "Click to abort",
+    "description": "Tooltip for abort button"
+  },
   "listRefreshed": {
     "message": "List refreshed",
     "description": "Toast message when list is refreshed"

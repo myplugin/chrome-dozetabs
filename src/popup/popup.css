@@ -67,6 +67,21 @@ body {
   color: #202124;
 }
 
+.icon-btn.running {
+  color: #f44336;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.icon-btn.running:hover {
+  background: #fce8e7;
+  color: #d93025;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 /* View Tabs */
 .view-tabs {
   display: flex;

@@ -73,6 +73,14 @@
       }
     }
   },
+  "batchAborted": {
+    "message": "已中止批量休眠",
+    "description": "批量操作被中止提示"
+  },
+  "clickToAbort": {
+    "message": "点击中止",
+    "description": "中止按钮提示"
+  },
   "listRefreshed": {
     "message": "列表已刷新",
     "description": "列表刷新成功提示"

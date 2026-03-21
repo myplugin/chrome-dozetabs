@@ -73,7 +73,9 @@ export const MESSAGE_TYPES = {
   FETCH_FAVICON: 'fetchFavicon',
   LOCK_TAB: 'lockTab',
   UNLOCK_TAB: 'unlockTab',
-  GET_LOCKED_TABS: 'getLockedTabs'
+  GET_LOCKED_TABS: 'getLockedTabs',
+  GET_BATCH_STATUS: 'getBatchStatus',
+  ABORT_BATCH: 'abortBatch'
 };
 
 // Icon paths

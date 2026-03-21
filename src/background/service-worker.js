@@ -37,6 +37,17 @@ import {
   extractDomain
 } from '../utils/whitelist.js';
 
+// Batch operation state
+let batchOperation = {
+  isRunning: false,
+  currentTabId: null,
+  total: 0,
+  processed: 0,
+  slept: 0,
+  skipped: 0,
+  aborted: false
+};
+
 // Initialize storage on install
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeStorage();
@@ -200,6 +211,23 @@ async function handleMessage(message, sender) {
       return { lockedTabs: Array.from(tabs) };
     }
 
+    case MESSAGE_TYPES.GET_BATCH_STATUS:
+      return {
+        isRunning: batchOperation.isRunning,
+        currentTabId: batchOperation.currentTabId,
+        total: batchOperation.total,
+        processed: batchOperation.processed,
+        slept: batchOperation.slept,
+        skipped: batchOperation.skipped
+      };
+
+    case MESSAGE_TYPES.ABORT_BATCH:
+      if (batchOperation.isRunning) {
+        batchOperation.aborted = true;
+        return { success: true, message: 'Batch operation aborted' };
+      }
+      return { success: false, message: 'No batch operation running' };
+
     default:
       return { error: 'Unknown message type' };
   }
@@ -238,43 +266,29 @@ async function handleFetchFavicon(url) {
 }
 
 // Sleep a single tab
-async function handleSleepTab(tabId) {
-  console.log('[Tab Sleep] handleSleepTab start for tabId:', tabId);
+// options.skipBadgeUpdate: true when called from batch operations
+// options.skipStateCapture: true to skip scroll/form state capture (faster for batch)
+async function handleSleepTab(tabId, options = {}) {
+  const { skipBadgeUpdate = false, skipStateCapture = false } = options;
 
   try {
-    // Step 1: Get tab
-    console.log('[Tab Sleep] Step 1: Getting tab...');
     const tab = await getTab(tabId);
-    console.log('[Tab Sleep] Step 1 done, tab:', tab?.id, tab?.url?.substring(0, 50));
-
-    // Step 2: Check if can sleep
-    console.log('[Tab Sleep] Step 2: Checking if can sleep...');
     const { canSleep, reason } = await canSleepTab(tab);
-    console.log('[Tab Sleep] Step 2 done, canSleep:', canSleep, 'reason:', reason);
 
     if (!canSleep) {
       return { success: false, reason };
     }
 
-    // Step 3: Check if active tab
-    console.log('[Tab Sleep] Step 3: Checking if active tab...');
+    // Check if active tab
     const [activeTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
     const isActiveTab = activeTab && activeTab.id === tabId;
-    console.log('[Tab Sleep] Step 3 done, isActiveTab:', isActiveTab);
 
-    // Step 4: Switch away if active
+    // Switch away if active
     if (isActiveTab) {
-      console.log('[Tab Sleep] Step 4: Switching away from active tab...');
       await switchAwayFromTab(tab);
-      console.log('[Tab Sleep] Step 4 done');
     }
 
-    // Step 5: Get settings
-    console.log('[Tab Sleep] Step 5: Getting settings...');
-    const settings = await getSettings();
-    console.log('[Tab Sleep] Step 5 done');
-
-    // Step 6: Prepare tab state
+    // Prepare tab state
     const tabState = {
       tabId,
       originalUrl: tab.url,
@@ -283,64 +297,50 @@ async function handleSleepTab(tabId) {
       sleptAt: Date.now()
     };
 
-    // Step 7: Capture scroll/form state (with timeout)
-    if (settings.preserveScrollPosition || settings.preserveFormData) {
-      console.log('[Tab Sleep] Step 6: Capturing tab state...');
-      try {
-        const capturePromise = executeScript(tabId, {
-          func: captureTabState,
-          args: [settings.preserveScrollPosition, settings.preserveFormData]
-        });
+    // Capture scroll/form state (skip for batch operations to speed up)
+    if (!skipStateCapture) {
+      const settings = await getSettings();
+      if (settings.preserveScrollPosition || settings.preserveFormData) {
+        try {
+          const results = await executeScript(tabId, {
+            func: captureTabState,
+            args: [settings.preserveScrollPosition, settings.preserveFormData]
+          });
 
-        // 3 second timeout for script execution
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Script execution timeout')), 3000)
-        );
-
-        const results = await Promise.race([capturePromise, timeoutPromise]);
-
-        if (results && results[0] && results[0].result) {
-          const capturedState = results[0].result;
-          if (settings.preserveScrollPosition) {
-            tabState.scrollPosition = capturedState.scrollPosition;
+          if (results && results[0] && results[0].result) {
+            const capturedState = results[0].result;
+            if (settings.preserveScrollPosition) {
+              tabState.scrollPosition = capturedState.scrollPosition;
+            }
+            if (settings.preserveFormData) {
+              tabState.formData = capturedState.formData;
+            }
           }
-          if (settings.preserveFormData) {
-            tabState.formData = capturedState.formData;
-          }
+        } catch (e) {
+          // Skip state capture on error
         }
-        console.log('[Tab Sleep] Step 6 done');
-      } catch (e) {
-        console.log('[Tab Sleep] Step 6 skipped:', e.message);
       }
     }
 
-    // Step 8: Save state to storage
-    console.log('[Tab Sleep] Step 7: Saving sleeping tab state...');
+    // Save state to storage
     await saveSleepingTab(tabId, tabState);
-    console.log('[Tab Sleep] Step 7 done');
 
-    // Step 9: Sleep the tab (discard)
-    console.log('[Tab Sleep] Step 8: Discarding tab...');
+    // Sleep the tab (discard)
     await sleepTab(tabId);
-    console.log('[Tab Sleep] Step 8 done');
 
-    // Step 10: Update statistics
-    console.log('[Tab Sleep] Step 9: Incrementing sleep count...');
+    // Update statistics
     await incrementSleepCount();
-    console.log('[Tab Sleep] Step 9 done');
 
-    // Step 11: Update badge
-    console.log('[Tab Sleep] Step 10: Updating badge...');
-    await updateBadge();
-    console.log('[Tab Sleep] Step 10 done');
+    // Update badge (skip if batch operation)
+    if (!skipBadgeUpdate) {
+      await updateBadge();
+    }
 
-    // Step 12: Clear lock status (lock is one-time protection)
+    // Clear lock status
     await unlockTab(tabId);
 
-    console.log('[Tab Sleep] handleSleepTab SUCCESS for tabId:', tabId);
     return { success: true };
   } catch (error) {
-    console.error('[Tab Sleep] handleSleepTab ERROR for tabId:', tabId, error);
     return { success: false, reason: error.message };
   }
 }
@@ -395,13 +395,34 @@ function captureTabState(saveScroll, saveForm) {
   return state;
 }
 
-// Sleep all other tabs
+// Sleep all other tabs (parallel processing, no state capture for speed)
 async function handleSleepAllOther(currentTabId) {
-  console.log('[Tab Sleep] handleSleepAllOther called with tabId:', currentTabId);
+  // Initialize batch operation state
+  batchOperation = {
+    isRunning: true,
+    currentTabId,
+    total: 0,
+    processed: 0,
+    slept: 0,
+    skipped: 0,
+    aborted: false
+  };
 
   try {
     const tabs = await queryTabs();
-    console.log('[Tab Sleep] Found tabs:', tabs.length);
+
+    // Filter out current tab and already discarded tabs
+    const tabsToProcess = tabs.filter(tab =>
+      tab.id !== currentTabId && !tab.discarded
+    );
+
+    batchOperation.total = tabsToProcess.length;
+
+    // No tabs to process
+    if (tabsToProcess.length === 0) {
+      batchOperation.isRunning = false;
+      return { slept: 0, skipped: 0, reasons: [] };
+    }
 
     const results = {
       slept: 0,
@@ -409,64 +430,59 @@ async function handleSleepAllOther(currentTabId) {
       reasons: []
     };
 
-    // Helper function with timeout
-    const withTimeout = (promise, ms, errorMsg) => {
-      return Promise.race([
-        promise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
-      ]);
-    };
+    const CONCURRENCY = 10;
 
-    for (const tab of tabs) {
-      if (tab.id === currentTabId) {
-        console.log('[Tab Sleep] Skipping current tab:', tab.id);
-        continue;
-      }
-      if (tab.discarded) {
-        console.log('[Tab Sleep] Skipping already discarded tab:', tab.id);
-        results.skipped++;
-        continue;
+    // Process in batches
+    for (let i = 0; i < tabsToProcess.length; i += CONCURRENCY) {
+      // Check for abort
+      if (batchOperation.aborted) {
+        batchOperation.isRunning = false;
+        return {
+          ...results,
+          aborted: true,
+          message: 'Operation aborted by user'
+        };
       }
 
-      try {
-        console.log('[Tab Sleep] Processing tab:', tab.id, tab.url?.substring(0, 50));
+      const batch = tabsToProcess.slice(i, i + CONCURRENCY);
 
-        const { canSleep, reason } = await withTimeout(
-          canSleepTab(tab),
-          5000,
-          'canSleepTab timeout'
-        );
-        console.log('[Tab Sleep] Tab', tab.id, 'canSleep:', canSleep, 'reason:', reason);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (tab) => {
+          const { canSleep, reason } = await canSleepTab(tab);
+          if (!canSleep) {
+            return { success: false, reason, title: tab.title };
+          }
+          return await handleSleepTab(tab.id, { skipBadgeUpdate: true, skipStateCapture: true });
+        })
+      );
 
-        if (canSleep) {
-          // Add 10 second timeout for sleep operation
-          const result = await withTimeout(
-            handleSleepTab(tab.id),
-            10000,
-            'handleSleepTab timeout'
-          );
-          if (result.success) {
+      for (const result of batchResults) {
+        batchOperation.processed++;
+        if (result.status === 'fulfilled') {
+          if (result.value.success) {
             results.slept++;
-            console.log('[Tab Sleep] Successfully slept tab:', tab.id);
+            batchOperation.slept++;
           } else {
             results.skipped++;
-            console.log('[Tab Sleep] Failed to sleep tab:', tab.id, result.reason);
+            batchOperation.skipped++;
+            if (result.value.title) {
+              results.reasons.push({ title: result.value.title, reason: result.value.reason });
+            }
           }
         } else {
           results.skipped++;
-          results.reasons.push({ title: tab.title, reason });
+          batchOperation.skipped++;
         }
-      } catch (tabError) {
-        console.error('[Tab Sleep] Error processing tab:', tab.id, tabError.message || tabError);
-        results.skipped++;
       }
     }
 
-    console.log('[Tab Sleep] handleSleepAllOther results:', results);
+    // Update badge once at the end
     await updateBadge();
+
+    batchOperation.isRunning = false;
     return results;
   } catch (error) {
-    console.error('[Tab Sleep] handleSleepAllOther error:', error);
+    batchOperation.isRunning = false;
     return { slept: 0, skipped: 0, reasons: [], error: error.message };
   }
 }

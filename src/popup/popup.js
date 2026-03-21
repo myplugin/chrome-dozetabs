@@ -43,6 +43,7 @@ let lockedTabs = new Set();
 document.addEventListener('DOMContentLoaded', async () => {
   applyTranslations();
   await loadTabs();
+  await checkBatchStatus();
 });
 
 // Check if tab is sleeping
@@ -224,12 +225,25 @@ viewTabs.forEach(tab => {
   });
 });
 
-// Sleep other tabs
+// Sleep other tabs - handles both start and abort
 sleepOtherTabsBtn.addEventListener('click', async () => {
+  // Check if batch is already running
+  const status = await sendMessage({ type: MESSAGE_TYPES.GET_BATCH_STATUS });
+
+  if (status?.isRunning) {
+    // Abort ongoing operation
+    const result = await sendMessage({ type: MESSAGE_TYPES.ABORT_BATCH });
+    if (result?.success) {
+      showToast(t('batchAborted') || 'Aborted');
+    }
+    updateSleepAllButton(false);
+    return;
+  }
+
+  // Start new batch operation
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab) {
-    // 开始定期刷新 UI（每 300ms）
-    const refreshInterval = setInterval(() => loadTabs(0, true), 300);
+    updateSleepAllButton(true);
 
     try {
       const result = await sendMessage({
@@ -237,10 +251,9 @@ sleepOtherTabsBtn.addEventListener('click', async () => {
         payload: { currentTabId: tab.id }
       });
 
-      // 停止定期刷新
-      clearInterval(refreshInterval);
-
-      if (result?.slept !== undefined || result?.success) {
+      if (result?.aborted) {
+        showToast(t('batchAborted') || 'Aborted');
+      } else if (result?.slept !== undefined || result?.success) {
         showToast(t('tabsSlept', [String(result.slept || 0), String(result.skipped || 0)]));
         await loadTabs(100);
       } else {
@@ -248,12 +261,39 @@ sleepOtherTabsBtn.addEventListener('click', async () => {
         await loadTabs();
       }
     } catch {
-      clearInterval(refreshInterval);
       showToast(t('failedToSleepTab'), true);
       await loadTabs();
+    } finally {
+      updateSleepAllButton(false);
     }
   }
 });
+
+// Update sleep all button state
+function updateSleepAllButton(isRunning) {
+  sleepOtherTabsBtn.disabled = false;
+  sleepOtherTabsBtn.classList.toggle('running', isRunning);
+  sleepOtherTabsBtn.title = isRunning ? (t('clickToAbort') || 'Click to abort') : t('sleepOtherTabs');
+
+  // Switch icon between moon and pause
+  if (isRunning) {
+    sleepOtherTabsBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></svg>`;
+  } else {
+    sleepOtherTabsBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
+  }
+}
+
+// Check batch status on popup open
+async function checkBatchStatus() {
+  try {
+    const status = await sendMessage({ type: MESSAGE_TYPES.GET_BATCH_STATUS });
+    if (status?.isRunning) {
+      updateSleepAllButton(true);
+    }
+  } catch {
+    // Ignore errors
+  }
+}
 
 // Handle sleep tab
 async function handleSleepTab(tabId) {
