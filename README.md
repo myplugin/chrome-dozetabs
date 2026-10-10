@@ -1,268 +1,84 @@
-# Tab Sleep Tool
+# Tab Sleep · 标签页休眠工具
 
-A Chrome extension that allows you to hibernate inactive tabs to save memory and CPU resources. Similar to Firefox's Tab Unload feature or The Great Suspender.
+[English](README.en.md) ｜ 中文（当前）
 
-## Features
+> 标签页开多了，浏览器越用越卡、内存动不动几个 GB？重启一次，几百个标签页一起加载，直接卡死？
+>
+> **Tab Sleep 把不用的标签页「休眠」起来：标签页还在，需要时点一下即回，内存却省下来了。**
 
-- **Sleep Current Tab**: Quickly put the active tab to sleep with one click
-- **Sleep All Other Tabs**: Hibernate all tabs except the current one
-- **Startup Suspend** (启动抢先休眠): Tabs restored at browser startup stay unloaded instead of all loading at once - they load only when you click them. Prevents the multi-GB memory spike when the browser reopens one or two hundred tabs (uses only the native `chrome.tabs.discard()`; no tab closing, no fake pages)
-- **Auto Sleep**: Automatically sleep tabs after configurable inactivity period
-- **Auto Wake**: Click on a sleeping tab to automatically reload it
-- **State Preservation**: Optionally save scroll position and form data
-- **Whitelist**: Protect important domains from being put to sleep
-- **Tab Lock**: Lock individual tabs to prevent them from being slept (even during batch operations)
-- **Smart Filtering**: Automatically excludes pinned tabs, tabs playing audio, and Chrome internal pages
-- **Context Menu**: Right-click to quickly sleep tabs or add domains to whitelist
-- **Keyboard Shortcuts**: Use Alt+S to sleep current tab, Alt+Shift+S to sleep all other tabs
-- **Statistics**: Track how many tabs you've put to sleep
-- **Badge Counter**: See the number of sleeping tabs at a glance
-- **Batch Operation Control**: Abort sleep-all operations mid-progress
+基于 Chrome 原生 `chrome.tabs.discard()` 实现，不关闭标签页、不做假页面，休眠后点击标签页即可自动重新加载。
 
-## Installation
+## 它能帮你什么
 
-### From Source (Developer Mode)
+- **内存告急时一键减负**：休眠当前页，或除当前页之外全部休眠，每个页一般能省下几十到上百 MB。
+- **重启不再卡死**：开启「启动抢先休眠」，浏览器恢复的上百个标签页保持未加载状态，点哪个才加载哪个。
+- **免打理**：可按空闲时长自动休眠；固定标签页、正在播放声音的标签页、白名单域名默认不休眠，重要页面不会被误伤。
 
-1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in top right)
-4. Click "Load unpacked"
-5. Select the `chrome-extension-tab-sleep` folder
-6. The extension icon should appear in your toolbar
+## 核心功能
 
-### Generate Icons
+| 功能 | 一句话说明 |
+|------|-----------|
+| 休眠当前页 / 休眠其他页 | 弹窗里两个按钮，或快捷键 `Alt+S` / `Alt+Shift+S` |
+| 启动抢先休眠（默认开） | 重启后恢复的标签页保持未加载，点击才加载 |
+| 自动休眠（默认关） | 标签页空闲超过设定时长（如 30 分钟）自动休眠 |
+| 点击即唤醒 | 点一下休眠的标签页就重新加载，可选恢复滚动位置和表单内容 |
+| 白名单 + 标签页锁定 | 重要域名整站免休眠；单个标签页可加锁，批量休眠也跳过它 |
+| 智能排除 | 固定标签页、正在发声的标签页、浏览器内部页面自动跳过 |
 
-Before using the extension, you need to generate the PNG icon files:
+## 典型场景
 
-1. Open `icon-generator.html` in Chrome
-2. Click "Download All Icons"
-3. Save each icon to the `assets/icons/` directory with the correct filename:
-   - icon16.png
-   - icon32.png
-   - icon48.png
-   - icon128.png
-   - icon16-sleep.png
-   - icon32-sleep.png
+1. ** research / 工作开几十上百个标签页**：看完一批，点「休眠其他页」，只留当前页，内存立刻降下来。
+2. **每天重启浏览器**：开着「启动抢先休眠」，200 个标签页恢复也只要加载当前一页。
+3. **笔记本省电 / 老机器续命**：配合自动休眠，后台标签页不再偷偷吃 CPU 和内存。
 
-## Usage
+## 快速上手
 
-### Popup Interface
+### 安装（约 1 分钟）
 
-Click the extension icon to open the popup:
+1. 打开 `chrome://extensions/`，打开右上角「开发者模式」。
+2. 点「加载已解压的扩展程序」，选择本仓库的 `src` 文件夹。
+3. 工具栏出现扩展图标即安装成功。适用于 Chrome / Edge 等 Chromium 内核浏览器。
 
-- **Sleep Current Tab**: Button to sleep the active tab
-- **Sleep All Other Tabs**: Button to sleep all tabs except the current one
-  - Shows progress during batch operations
-  - Can abort mid-operation with the "Abort" button
-- **Tab List**: View all tabs in the current window with sleep/wake/lock buttons
-  - Toggle between Active and Sleeping views
-  - Lock individual tabs to prevent sleeping
-- **Settings**: Link to open the full settings page
+### 基本使用
 
-### Right-Click Menu
+- 点工具栏图标打开弹窗：**休眠当前页** / **休眠其他页**（批量休眠可在中途取消）。
+- 在弹窗的标签页列表里，可按单个标签页休眠、唤醒、加锁/解锁。
+- 右键菜单：在任意页面上右键，可休眠本页、休眠其他页，或把当前域名加入/移出白名单。
+- 唤醒：**直接点击休眠的标签页**即可重新加载。
+- 快捷键：`Alt+S` 休眠当前页，`Alt+Shift+S` 休眠其他页（可在 `chrome://extensions/shortcuts` 里改）。
 
-Right-click on any page to access:
+## 设置速览
 
-- **Sleep this tab**: Put the current tab to sleep
-- **Sleep all other tabs**: Hibernate all other tabs
-- **Add domain to whitelist**: Protect the current domain
-- **Remove domain from whitelist**: Unprotect the current domain
+在弹窗点「设置」进入选项页（或右键扩展图标 → 选项）：
 
-### Waking Tabs
+| 设置 | 默认值 |
+|------|--------|
+| 固定标签页不休眠 / 发声标签页不休眠 / 图标角标计数 | 开 |
+| 启动抢先休眠（恢复的标签页保持未加载） | 开；固定标签页默认不包含在内 |
+| 自动休眠 | 关；开启后默认空闲 30 分钟休眠 |
+| 恢复滚动位置 / 恢复表单内容（密码除外） | 开 |
+| 休眠其他页之前先确认 | 开 |
 
-Simply click on a sleeping tab to wake it up. The page will reload and:
-- Scroll position will be restored (if enabled)
-- Form data will be restored (if enabled)
+白名单默认已包含 Gmail、Slack、Notion、Figma、Zoom 等常用协作站点，可在选项页自行增删，支持 `*.example.com` 这类通配写法。
 
-### Keyboard Shortcuts
+## 进阶与原理
 
-The extension supports keyboard shortcuts for quick actions:
+- **原理一句话**：调用 Chrome 原生 `chrome.tabs.discard()` 卸载页面内容，标签页本身保留，标题和图标都在，点击即重载。可用 Chrome 任务管理器（`Shift+Esc`）对比验证内存变化。
+- **局限**：页面内的 JS 运行状态（如游戏进度、复杂单页应用状态）不会保留；复杂富文本编辑器的内容可能无法完整恢复；`chrome://` 这类浏览器内部页面无法休眠。
+- **启动抢先休眠的完整机制与验收步骤**：见 [docs/STARTUP-SUSPEND-TEST.md](docs/STARTUP-SUSPEND-TEST.md)。
+- **开发相关**（项目结构、消息机制、如何加设置项/翻译）：见 [CLAUDE.md](CLAUDE.md)；无需构建，原生 ES Module 直接跑。测试：`node tests/startup-suspend.test.mjs`（单元测试），`python scripts/smoke-test.py --tabs 12`（真机冒烟，详见上述文档）。
 
-| Shortcut | Action |
-|----------|--------|
-| `Alt+S` | Sleep current tab |
-| `Alt+Shift+S` | Sleep all other tabs |
+## 常见问题
 
-You can customize these shortcuts in Chrome:
-1. Go to `chrome://extensions/shortcuts`
-2. Find "Tab Sleep Tool"
-3. Click the pencil icon to change the shortcut
+- **标签页休眠不了？** 先看它是不是浏览器内部页面、在白名单里、被加锁了，或命中了「固定/发声不休眠」的排除规则。
+- **表单内容没恢复？** 基础表单一般没问题，依赖复杂 JS 的编辑器可能恢复不了。
+- **图标没显示？** 确认加载的是 `src` 目录，且 `src/assets/icons/` 下 PNG 图标存在。
 
-## Settings
+## 隐私
 
-Access settings by:
-1. Right-click the extension icon → Options
-2. Or click the "Settings" link in the popup
+- 不收集任何用户数据，不发任何网络请求。
+- 所有设置和状态只存在本地 `chrome.storage.local`，不依赖外部服务。
 
-### General Settings
+## 参与与许可
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Exclude pinned tabs | Pinned tabs will never be put to sleep | On |
-| Exclude tabs playing audio | Tabs with active audio won't be slept | On |
-| Show badge counter | Display sleeping tab count on icon | On |
-
-### Auto Sleep
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Enable auto sleep | Automatically sleep tabs after inactivity | Off |
-| Sleep after (minutes) | Minutes of inactivity before auto sleep | 30 |
-
-Note: Auto sleep respects all exclusion rules (pinned, audio, whitelist, locked tabs).
-
-### Startup Suspend
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Suspend restored tabs at startup | Tabs restored at browser startup stay unloaded; click to load | On |
-| Include pinned tabs | Also keep pinned tabs unloaded at startup | Off |
-
-When the browser reopens many tabs, they stay unloaded instead of all loading at once — this is what prevents the multi-GB memory spike. Only the tab you're viewing loads; every other tab loads when you click it.
-
-### State Preservation
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| Save scroll position | Remember scroll position when waking | On |
-| Save form data | Remember form inputs (except passwords) | On |
-
-### Whitelist
-
-Manage domains that should never be put to sleep. Default whitelist includes:
-
-- Gmail (gmail.com, mail.google.com)
-- Microsoft Teams (teams.microsoft.com)
-- Slack (slack.com)
-- Discord (discord.com)
-- Zoom (zoom.us)
-- Google Docs/Sheets/Slides
-- Notion (notion.so)
-- Figma (figma.com)
-- And more...
-
-### Tab Lock
-
-Lock individual tabs to prevent them from being put to sleep:
-
-- **Lock a tab**: Click the lock icon in the popup tab list
-- **Unlock a tab**: Click the lock icon again to unlock
-- **Behavior**: Locked tabs are protected from both manual and batch sleep operations
-- **Indicator**: Locked tabs show a lock icon in the popup
-
-Tab lock is useful when you have specific tabs you want to keep active at all times, regardless of whitelist settings.
-
-## How It Works
-
-### Tab Discarding
-
-The extension uses Chrome's built-in `chrome.tabs.discard()` API to unload tabs. When a tab is discarded:
-
-1. The tab remains visible in the tab bar
-2. The page content is unloaded from memory
-3. The favicon and title remain visible
-4. Clicking the tab reloads the page
-
-### Memory Savings
-
-Each discarded tab typically saves 50-200MB of RAM depending on the page complexity. Use Chrome's Task Manager (Shift+Esc) to verify memory savings.
-
-### Limitations
-
-- **Page State Lost**: JavaScript state is not preserved (e.g., game progress, SPA state)
-- **Form Data**: Only basic form inputs are saved; complex editors may not be preserved
-- **Chrome Pages**: Internal pages (chrome://, settings, etc.) cannot be discarded
-
-## Development
-
-### Project Structure
-
-```
-chrome-extension-tab-sleep/
-├── manifest.json              # Extension manifest (Manifest V3)
-├── src/
-│   ├── background/
-│   │   └── service-worker.js  # Core business logic
-│   ├── popup/
-│   │   ├── popup.html
-│   │   ├── popup.css
-│   │   └── popup.js
-│   ├── options/
-│   │   ├── options.html
-│   │   ├── options.css
-│   │   └── options.js
-│   ├── content/
-│   │   └── content-script.js  # State capture/restore
-│   └── utils/
-│       ├── constants.js       # Constants and defaults
-│       ├── storage.js         # Storage utilities
-│       ├── tab-manager.js     # Tab operations
-│       └── whitelist.js       # Whitelist management
-├── assets/icons/              # Extension icons
-└── README.md
-```
-
-### Key APIs Used
-
-- `chrome.tabs.discard()` - Unload tabs
-- `chrome.tabs.query()` - Query tab information
-- `chrome.storage.local` - Persist settings and state
-- `chrome.contextMenus` - Right-click menu
-- `chrome.scripting` - Inject content scripts
-
-### Building
-
-No build process required! This extension uses native ES modules and runs directly in Chrome.
-
-## Browser Compatibility
-
-- **Chrome**: 88+ (Manifest V3 support)
-- **Microsoft Edge**: 88+ (Chromium-based)
-
-Not compatible with Firefox or Safari.
-
-## Privacy
-
-This extension:
-- Does NOT collect any user data
-- Does NOT make any network requests
-- Stores all data locally using chrome.storage.local
-- Does NOT require any external services
-
-## Troubleshooting
-
-### Tab won't sleep
-
-The tab may be:
-- A Chrome internal page (chrome://)
-- Playing audio (if audio exclusion is enabled)
-- Pinned (if pinned exclusion is enabled)
-- In the whitelist
-
-### Form data not restored
-
-Some forms use complex JavaScript that can't be captured. Basic forms should work correctly.
-
-### Extension icon not showing
-
-Make sure you've generated the PNG icons using the icon-generator.html file.
-
-## Testing
-
-- **Unit tests** (no browser needed): `node tests/startup-suspend.test.mjs` — validates the startup-suspend logic with mocked chrome APIs.
-- **E2E smoke test** (real Edge, 12-tab A/B): `python scripts/smoke-test.py --tabs 12` — see `docs/STARTUP-SUSPEND-TEST.md` for the full 200-tab acceptance procedure and the before/after comparison table.
-
-## License
-
-MIT License - feel free to use and modify.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgments
-
-Inspired by:
-- [The Great Suspender](https://github.com/deanoemcke/thegreatsuspender)
-- [Tab Discard](https://github.com/ragingwind/tab-discard)
-- Firefox's built-in Tab Unload feature
+MIT License，欢迎提 Pull Request。本项目灵感来自 The Great Suspender、Tab Discard 与 Firefox 的 Tab Unload 功能。
