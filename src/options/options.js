@@ -31,6 +31,8 @@ const preserveForm = document.getElementById('preserveForm');
 const autoSleepEnabled = document.getElementById('autoSleepEnabled');
 const autoSleepTimeout = document.getElementById('autoSleepTimeout');
 const autoSleepTimeoutContainer = document.getElementById('autoSleepTimeoutContainer');
+const startupSuspendEnabled = document.getElementById('startupSuspendEnabled');
+const startupIncludePinned = document.getElementById('startupIncludePinned');
 const newDomainInput = document.getElementById('newDomain');
 const addDomainBtn = document.getElementById('addDomain');
 const whitelistList = document.getElementById('whitelistList');
@@ -66,6 +68,8 @@ async function loadSettings() {
     preserveForm.checked = settings.preserveFormData;
     autoSleepEnabled.checked = settings.autoSleepEnabled || false;
     autoSleepTimeout.value = settings.autoSleepTimeout || 30;
+    startupSuspendEnabled.checked = settings.startupSuspendEnabled !== false; // default: on
+    startupIncludePinned.checked = settings.startupIncludePinned === true;   // default: off
     updateAutoSleepTimeoutVisibility();
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -102,23 +106,29 @@ async function loadStatistics() {
   }
 }
 
-// Save settings when toggles change
-[excludePinned, excludeAudible, showBadge, preserveScroll, preserveForm, autoSleepEnabled].forEach(toggle => {
-  toggle.addEventListener('change', async () => {
-    const settings = {
-      excludePinnedTabs: excludePinned.checked,
-      excludeAudibleTabs: excludeAudible.checked,
-      showBadge: showBadge.checked,
-      preserveScrollPosition: preserveScroll.checked,
-      preserveFormData: preserveForm.checked,
-      autoSleepEnabled: autoSleepEnabled.checked,
-      autoSleepTimeout: parseInt(autoSleepTimeout.value, 10) || 30
-    };
+// Collect the full settings object from the UI (single source of truth -
+// saving must always round-trip every key, otherwise keys get wiped)
+function collectSettings() {
+  return {
+    excludePinnedTabs: excludePinned.checked,
+    excludeAudibleTabs: excludeAudible.checked,
+    showBadge: showBadge.checked,
+    preserveScrollPosition: preserveScroll.checked,
+    preserveFormData: preserveForm.checked,
+    autoSleepEnabled: autoSleepEnabled.checked,
+    autoSleepTimeout: parseInt(autoSleepTimeout.value, 10) || 30,
+    startupSuspendEnabled: startupSuspendEnabled.checked,
+    startupIncludePinned: startupIncludePinned.checked
+  };
+}
 
+// Save settings when toggles change
+[excludePinned, excludeAudible, showBadge, preserveScroll, preserveForm, autoSleepEnabled, startupSuspendEnabled, startupIncludePinned].forEach(toggle => {
+  toggle.addEventListener('change', async () => {
     try {
       await sendMessage({
         type: MESSAGE_TYPES.UPDATE_SETTINGS,
-        payload: { settings }
+        payload: { settings: collectSettings() }
       });
       showToast(t('settingsSaved'), 'success');
       updateAutoSleepTimeoutVisibility();
@@ -135,20 +145,10 @@ autoSleepTimeout.addEventListener('change', async () => {
   if (timeout > 120) timeout = 120;
   autoSleepTimeout.value = timeout;
 
-  const settings = {
-    excludePinnedTabs: excludePinned.checked,
-    excludeAudibleTabs: excludeAudible.checked,
-    showBadge: showBadge.checked,
-    preserveScrollPosition: preserveScroll.checked,
-    preserveFormData: preserveForm.checked,
-    autoSleepEnabled: autoSleepEnabled.checked,
-    autoSleepTimeout: timeout
-  };
-
   try {
     await sendMessage({
       type: MESSAGE_TYPES.UPDATE_SETTINGS,
-      payload: { settings }
+      payload: { settings: collectSettings() }
     });
     showToast(t('settingsSaved'), 'success');
   } catch (error) {
@@ -259,18 +259,9 @@ resetStatsBtn.addEventListener('click', async () => {
   }
 
   try {
-    await sendMessage({
-      type: MESSAGE_TYPES.UPDATE_SETTINGS,
-      payload: {
-        settings: {
-          statistics: {
-            totalSlept: 0,
-            totalWoken: 0,
-            lastReset: Date.now()
-          }
-        }
-      }
-    });
+    // NOTE: reset the dedicated statistics key - NOT UPDATE_SETTINGS, which
+    // would overwrite the whole settings object with defaults.
+    await sendMessage({ type: MESSAGE_TYPES.RESET_STATISTICS });
 
     totalSleptEl.textContent = '0';
     totalWokenEl.textContent = '0';

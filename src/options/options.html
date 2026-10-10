@@ -101,6 +101,31 @@
         </div>
       </section>
 
+      <!-- Startup Suspend -->
+      <section class="settings-section">
+        <h2 data-i18n="startupSuspendTitle">Startup Suspend</h2>
+        <div class="setting-item">
+          <div class="setting-info">
+            <label for="startupSuspendEnabled" data-i18n="startupSuspendEnabled">Suspend restored tabs at startup</label>
+            <p class="setting-description" data-i18n="startupSuspendEnabledDesc">Tabs restored at browser startup stay unloaded and load only when clicked, keeping memory low when the browser reopens many tabs</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="startupSuspendEnabled" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <label for="startupIncludePinned" data-i18n="startupIncludePinned">Include pinned tabs</label>
+            <p class="setting-description" data-i18n="startupIncludePinnedDesc">Pinned tabs are also kept unloaded at startup (default: off)</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="startupIncludePinned">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
       <!-- Whitelist -->
       <section class="settings-section">
         <h2 data-i18n="whitelistTitle">Whitelisted Domains</h2>

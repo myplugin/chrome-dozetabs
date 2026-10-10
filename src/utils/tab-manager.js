@@ -134,12 +134,21 @@ export async function getSleepableTabs() {
 }
 
 /**
- * Get count of sleeping (discarded) tabs
- * @returns {Promise<number>} - Number of discarded tabs
+ * Check if a tab is sleeping (discarded or unloaded)
+ * @param {chrome.tabs.Tab} tab - Tab to check
+ * @returns {boolean} - True if sleeping
  */
-export async function getSleepingTabCount() {
+export function isTabSleeping(tab) {
+  return tab.discarded === true || tab.status === 'unloaded';
+}
+
+/**
+ * Get count of active (non-discarded, non-empty) tabs
+ * @returns {Promise<number>} - Number of active tabs
+ */
+export async function getActiveTabCount() {
   const tabs = await queryTabs();
-  return tabs.filter(tab => tab.discarded).length;
+  return tabs.filter(tab => !isTabSleeping(tab) && !isEmptyTabPage(tab.url, tab.title)).length;
 }
 
 /**

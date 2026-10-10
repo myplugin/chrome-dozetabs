@@ -1,7 +1,10 @@
 import {
   MESSAGE_TYPES,
   STORAGE_KEYS,
-  ICONS
+  SESSION_KEYS,
+  ICONS,
+  STARTUP_SUSPEND_WINDOW_MS,
+  STARTUP_SWEEP_INTERVAL_MS
 } from '../utils/constants.js';
 import {
   getSettings,
@@ -14,6 +17,7 @@ import {
   getStatistics,
   incrementSleepCount,
   incrementWakeCount,
+  resetStatistics,
   initializeStorage,
   lockTab,
   unlockTab,
@@ -27,7 +31,7 @@ import {
   queryTabs,
   getTab,
   executeScript,
-  getSleepingTabCount
+  getActiveTabCount
 } from '../utils/tab-manager.js';
 import {
   isWhitelisted,
@@ -35,7 +39,8 @@ import {
   removeFromWhitelist,
   isChromeInternalPage,
   isEmptyTabPage,
-  extractDomain
+  extractDomain,
+  matchesPattern
 } from '../utils/whitelist.js';
 
 // Batch operation state
@@ -60,6 +65,28 @@ let autoSleepState = {
 const AUTO_SLEEP_CHECK_INTERVAL = 1; // Check every 1 minute
 const AUTO_SLEEP_ALARM_NAME = 'autoSleepCheck';
 
+// ============ Startup Suspend (启动抢先丢弃) state ============
+// See the dedicated section near the bottom of this file for the full logic.
+const startupSuspend = {
+  windowEnd: 0,        // ms timestamp; 0 or in the past => window closed
+  settings: null,      // cached while the window is open (speed matters in the race)
+  whitelist: null,
+  lockedTabs: null,
+  userActivated: new Set(), // tabIds the user actually activated this session
+  pendingStats: 0,     // startup discards not yet written to statistics
+  sweepTimer: null
+};
+
+let browserJustStarted = false;       // set by chrome.runtime.onStartup
+let startupSuspendInitDone = false;
+
+const hasSessionStorage = typeof chrome.storage !== 'undefined' && typeof chrome.storage.session !== 'undefined';
+const sessionMemory = new Map();     // fallback when chrome.storage.session is unavailable
+
+// Kick off startup-window detection as soon as the SW boots. Handlers below
+// await this promise before acting, so they never see a stale/unset window.
+const startupSuspendReady = initStartupSuspend();
+
 // Initialize storage on install
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeStorage();
@@ -70,6 +97,15 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 // Initialize on startup
 chrome.runtime.onStartup.addListener(async () => {
+  // This event only fires when the browser (profile) itself starts - the
+  // canonical signal for opening the startup suspend window.
+  browserJustStarted = true;
+  try {
+    await openStartupWindowIfNeeded();
+  } catch (e) {
+    console.warn('[Tab Sleep] Failed to open startup suspend window:', e);
+  }
+
   await initializeStorage();
   await createContextMenus();
   await updateBadge();
@@ -152,10 +188,18 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 // Handle tab activation (waking up sleeping tabs and tracking activity)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  const tab = await getTab(activeInfo.tabId);
+  // Tabs the user actually visited are never touched by startup suspend.
+  startupSuspend.userActivated.add(activeInfo.tabId);
 
   // Update last active time for auto-sleep
   autoSleepState.lastActiveTime[activeInfo.tabId] = Date.now();
+
+  let tab;
+  try {
+    tab = await getTab(activeInfo.tabId);
+  } catch (e) {
+    return; // Tab vanished between the event and our lookup - nothing to do.
+  }
 
   if (tab.discarded) {
     // Tab is being woken up
@@ -163,16 +207,42 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   }
 });
 
+// ============ Startup suspend: the preemptive race ============
+// Session-restored tabs are first created with status === 'unloaded' and are
+// only navigated afterwards. Discarding them in this instant keeps them
+// unloaded until clicked. Ordinary new tabs are unaffected because they are
+// active when created (or protected by the checks inside startupDiscardTab).
+chrome.tabs.onCreated.addListener(async (tab) => {
+  await startupSuspendReady;
+  if (!isStartupWindowOpen()) return;
+  const ctx = await getStartupSuspendContext();
+  if (!ctx.settings.startupSuspendEnabled) return;
+  await startupDiscardTab(ctx, tab, 'created');
+});
+
 // Update badge and clear lock status when tabs are removed
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   await unlockTab(tabId); // Clear lock status when tab is closed
-  await updateBadge();
+  updateBadgeSoon();
 });
 
 // Update badge when tabs are updated
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' || changeInfo.discarded !== undefined) {
-    await updateBadge();
+    updateBadgeSoon();
+  }
+
+  // Startup suspend fallback: inside the post-startup window, any background
+  // tab that slipped into 'loading' (the SW was still booting, or a restored
+  // tab raced past onCreated) is discarded immediately.
+  if (changeInfo.status === 'loading' && tab && !tab.active) {
+    await startupSuspendReady;
+    if (isStartupWindowOpen()) {
+      const ctx = await getStartupSuspendContext();
+      if (ctx.settings.startupSuspendEnabled) {
+        await startupDiscardTab(ctx, tab, 'updated');
+      }
+    }
   }
 });
 
@@ -194,6 +264,10 @@ async function handleMessage(message, sender) {
   console.log('[Tab Sleep] Processing message type:', type, 'payload:', payload);
 
   switch (type) {
+    case 'getTabId':
+      // Used by the content script to find its own tab id for state restore.
+      return { tabId: sender?.tab?.id ?? null };
+
     case MESSAGE_TYPES.SLEEP_TAB:
       return await handleSleepTab(payload.tabId);
 
@@ -219,6 +293,10 @@ async function handleMessage(message, sender) {
     case MESSAGE_TYPES.UPDATE_SETTINGS:
       await saveSettings(payload.settings);
       return { success: true };
+
+    case MESSAGE_TYPES.RESET_STATISTICS:
+      await resetStatistics();
+      return { success: true, statistics: await getStatistics() };
 
     case MESSAGE_TYPES.GET_STATISTICS:
       return { statistics: await getStatistics() };
@@ -269,6 +347,22 @@ async function handleMessage(message, sender) {
         enabled: autoSleepState.isEnabled,
         timeoutMinutes: autoSleepState.timeoutMinutes
       };
+
+    case MESSAGE_TYPES.GET_STARTUP_STATUS: {
+      const ctx = await getStartupSuspendContext();
+      return {
+        windowOpen: isStartupWindowOpen(),
+        windowEnd: startupSuspend.windowEnd,
+        enabled: !!ctx.settings.startupSuspendEnabled,
+        includePinned: !!ctx.settings.startupIncludePinned,
+        discardedThisWindow: startupSuspend.pendingStats
+      };
+    }
+
+    case MESSAGE_TYPES.TRIGGER_STARTUP_SWEEP:
+      // Test hook: force a startup sweep now (used by scripts/smoke-test.py
+      // to control sweep timing explicitly after session restore completes).
+      return { discarded: await sweepStartupTabs('manual') };
 
     default:
       return { error: 'Unknown message type' };
@@ -535,11 +629,11 @@ async function handleWakeTab(tab) {
     const sleepingTabs = await getSleepingTabs();
     const tabState = sleepingTabs[tab.id];
 
-    // Reload the tab
-    await reloadTab(tab.id);
-
-    // Restore state after reload (if we have it)
     if (tabState) {
+      // This tab was slept by the user/batch path and we captured state.
+      // Reload it, then hand the captured scroll/form data to the content script.
+      await reloadTab(tab.id);
+
       // Store state temporarily for content script to pick up
       const key = `restore_${tab.id}`;
       await chrome.storage.local.set({ [key]: tabState });
@@ -549,6 +643,11 @@ async function handleWakeTab(tab) {
         await chrome.storage.local.remove(key);
         await removeSleepingTab(tab.id);
       }, 5000);
+    } else {
+      // No captured state - e.g. a tab suspended at browser startup (it was
+      // never loaded, so there is no scroll/form data to preserve). Chrome
+      // reloads a discarded tab by itself when it is activated, so issuing an
+      // extra reload here would only restart the load in flight.
     }
 
     await incrementWakeCount();
@@ -577,7 +676,7 @@ async function handleRemoveFromWhitelist(domain) {
   return { success: removed };
 }
 
-// Update badge with sleeping tab count
+// Update badge with active tab count
 async function updateBadge() {
   const settings = await getSettings();
 
@@ -586,7 +685,7 @@ async function updateBadge() {
     return;
   }
 
-  const count = await getSleepingTabCount();
+  const count = await getActiveTabCount();
 
   if (count === 0) {
     await chrome.action.setBadgeText({ text: '' });
@@ -671,13 +770,254 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
-// Listen for settings changes to update auto-sleep
+// ============ Startup Suspend (启动抢先丢弃) ============
+//
+// Goal: when the browser reopens one or two hundred session-restored tabs,
+// they must STAY unloaded instead of all loading at once and spiking memory.
+//
+// Mechanism (all native discard - no tab closing, no fake pages):
+//   1. onCreated: session-restored tabs are created with status === 'unloaded'
+//      and only navigated afterwards. Discarding in that instant intercepts
+//      the load; the tab stays in the tab strip unloaded and loads when
+//      clicked. Ordinary new tabs are active/pinned-checked and unaffected.
+//   2. Fallback window (STARTUP_SUSPEND_WINDOW_MS after browser start): any
+//      non-active tab seen 'loading' via onUpdated or via the periodic sweep
+//      is discarded immediately - covers tabs that raced past the SW boot.
+//   3. The window is opened by chrome.runtime.onStartup (the canonical
+//      "browser just started" signal). The window boundary lives in
+//      chrome.storage.session so an SW restart mid-window resumes instead of
+//      re-arming. Extension reloads/updates do NOT fire onStartup, so they
+//      correctly never open the window (no mass-discard on update).
+//
+// Settings: startupSuspendEnabled (master switch), startupIncludePinned
+// (default off). Whitelisted domains and locked tabs are still respected.
+
+async function sessionGet(key) {
+  if (hasSessionStorage) {
+    try {
+      const result = await chrome.storage.session.get(key);
+      return result[key];
+    } catch (e) {
+      // fall through to the in-memory fallback
+    }
+  }
+  return sessionMemory.has(key) ? sessionMemory.get(key) : undefined;
+}
+
+async function sessionSet(obj) {
+  if (hasSessionStorage) {
+    try {
+      await chrome.storage.session.set(obj);
+      return;
+    } catch (e) {
+      // fall through to the in-memory fallback
+    }
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    sessionMemory.set(key, value);
+  }
+}
+
+function isStartupWindowOpen() {
+  return startupSuspend.windowEnd > Date.now();
+}
+
+async function initStartupSuspend() {
+  if (startupSuspendInitDone) return;
+  startupSuspendInitDone = true;
+  try {
+    const now = Date.now();
+    const end = await sessionGet(SESSION_KEYS.STARTUP_WINDOW_END);
+
+    if (end !== undefined && end > now) {
+      // Window still open (SW restarted mid-window) - resume sweeps.
+      startupSuspend.windowEnd = end;
+      await refreshStartupSuspendCaches();
+      await sweepStartupTabs('resume');
+      scheduleStartupSweeps();
+      scheduleStartupStatsFlush();
+      return;
+    }
+
+    // Window not open: idle until chrome.runtime.onStartup fires (browser
+    // start). Extension reloads/updates never fire onStartup, so they
+    // correctly never open the window. (scripts/smoke-test.py opens the
+    // window explicitly via chrome.storage.session + TRIGGER_STARTUP_SWEEP
+    // because some automation environments don't deliver onStartup.)
+  } catch (e) {
+    console.warn('[Tab Sleep] Startup suspend init failed:', e);
+  }
+}
+
+// Opens the startup suspend window. Called from chrome.runtime.onStartup
+// (the canonical "browser just started" signal) only.
+async function openStartupWindowIfNeeded() {
+  await startupSuspendReady;
+  await openStartupWindowNow();
+}
+
+// The actual window-opening logic. Does NOT await startupSuspendReady so it
+// can be called from inside initStartupSuspend without deadlocking.
+async function openStartupWindowNow() {
+  if (isStartupWindowOpen()) return;
+  const now = Date.now();
+  const end = now + STARTUP_SUSPEND_WINDOW_MS;
+  await sessionSet({ [SESSION_KEYS.STARTUP_WINDOW_END]: end });
+  startupSuspend.windowEnd = end;
+  console.log('[Tab Sleep] Startup suspend window open for', STARTUP_SUSPEND_WINDOW_MS, 'ms');
+  await refreshStartupSuspendCaches();
+  await sweepStartupTabs('startup');
+  scheduleStartupSweeps();
+  scheduleStartupStatsFlush();
+}
+
+// Cache settings/whitelist/locks in memory: the onCreated race is measured in
+// milliseconds, so per-tab storage reads would be too slow. Invalidated by
+// chrome.storage.onChanged below.
+async function refreshStartupSuspendCaches() {
+  const [settings, whitelist, lockedTabs] = await Promise.all([
+    getSettings(),
+    getWhitelist(),
+    getLockedTabs()
+  ]);
+  startupSuspend.settings = settings;
+  startupSuspend.whitelist = whitelist;
+  startupSuspend.lockedTabs = lockedTabs;
+}
+
+async function getStartupSuspendContext() {
+  if (!startupSuspend.settings || !startupSuspend.whitelist || !startupSuspend.lockedTabs) {
+    await refreshStartupSuspendCaches();
+  }
+  return startupSuspend;
+}
+
+function invalidateStartupSuspendCaches() {
+  startupSuspend.settings = null;
+  startupSuspend.whitelist = null;
+  startupSuspend.lockedTabs = null;
+}
+
+function isUrlInCachedWhitelist(ctx, url) {
+  const domain = extractDomain(url);
+  if (!domain) return false;
+  return (ctx.whitelist || []).some(pattern => matchesPattern(domain, pattern));
+}
+
+// Discard one tab during the startup window.
+// source: 'created' (only intercepts the unloaded -> loading transition),
+//         'updated'  (kills in-flight loads of background tabs),
+//         'sweep'    (also catches tabs that finished loading before the SW
+//                     could see them - fast restores / slow SW boot).
+// Tabs the user actually activated are never touched.
+async function startupDiscardTab(ctx, tab, source) {
+  try {
+    if (!tab || tab.discarded) return false;
+    if (tab.active) return false;                          // never a tab being viewed
+    if (tab.pinned && !ctx.settings.startupIncludePinned) return false;
+    if (tab.autoDiscardable === false) return false;        // browser forbids discarding it
+    if (startupSuspend.userActivated.has(tab.id)) return false;
+    if (source === 'created' && tab.status !== 'unloaded') return false;
+    if (source === 'updated' && tab.status !== 'unloaded' && tab.status !== 'loading') return false;
+    if (source === 'sweep' && tab.status !== 'unloaded' && tab.status !== 'loading' && tab.status !== 'complete') return false;
+    if (isEmptyTabPage(tab.url, tab.title) || isChromeInternalPage(tab.url)) return false;
+    if (ctx.lockedTabs && ctx.lockedTabs.has(tab.id)) return false;
+    if (isUrlInCachedWhitelist(ctx, tab.url)) return false;
+
+    await chrome.tabs.discard(tab.id);
+    startupSuspend.pendingStats++;
+    if (startupSuspend.pendingStats >= 10) flushStartupStats(); // incremental flush
+    return true;
+  } catch (e) {
+    // Tab vanished, already discarded, or the load won the race - harmless,
+    // the sweep retries within the window.
+    return false;
+  }
+}
+
+// Periodic sweep across ALL windows: catches restored tabs that started
+// loading while the SW was booting, and retries tabs that raced past events.
+async function sweepStartupTabs(reason) {
+  try {
+    const ctx = await getStartupSuspendContext();
+    if (!ctx.settings.startupSuspendEnabled) return 0;
+    const tabs = await chrome.tabs.query({});
+    let discarded = 0;
+    for (const tab of tabs) {
+      if (tab.active) {
+        // The tab being viewed (per window) - protect it from the sweep's
+        // 'complete' rule even after the user later switches away from it.
+        startupSuspend.userActivated.add(tab.id);
+        continue;
+      }
+      if (await startupDiscardTab(ctx, tab, 'sweep')) discarded++;
+    }
+    if (discarded > 0) {
+      console.log(`[Tab Sleep] Startup sweep (${reason}): discarded ${discarded} tabs`);
+    }
+    return discarded;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function scheduleStartupSweeps() {
+  if (startupSuspend.sweepTimer) return;
+  const tick = async () => {
+    startupSuspend.sweepTimer = null;
+    if (!isStartupWindowOpen()) return;
+    await sweepStartupTabs('timer');
+    if (isStartupWindowOpen()) {
+      startupSuspend.sweepTimer = setTimeout(tick, STARTUP_SWEEP_INTERVAL_MS);
+    }
+  };
+  startupSuspend.sweepTimer = setTimeout(tick, STARTUP_SWEEP_INTERVAL_MS);
+}
+
+function scheduleStartupStatsFlush() {
+  const remaining = Math.max(0, startupSuspend.windowEnd - Date.now());
+  setTimeout(flushStartupStats, remaining + 500);
+}
+
+async function flushStartupStats() {
+  const count = startupSuspend.pendingStats;
+  if (count <= 0) return;
+  startupSuspend.pendingStats = 0;
+  try {
+    await incrementSleepCount(count);
+    console.log('[Tab Sleep] Startup suspend flushed', count, 'discards to statistics');
+  } catch (e) { /* statistics are cosmetic - ignore */ }
+}
+
+// ============ Badge debounce ============
+// Bulk operations (startup window) would otherwise call updateBadge once per
+// tab; collapse those into at most one update per interval.
+let badgeUpdateTimer = null;
+function updateBadgeSoon() {
+  if (badgeUpdateTimer) return;
+  badgeUpdateTimer = setTimeout(async () => {
+    badgeUpdateTimer = null;
+    try {
+      await updateBadge();
+    } catch (e) { /* ignore */ }
+  }, 500);
+}
+
+// Listen for settings changes to update auto-sleep and drop cached startup data
 chrome.storage.onChanged.addListener(async (changes, areaName) => {
-  if (areaName === 'local' && changes.settings) {
+  if (areaName !== 'local') return;
+  if (changes.settings) {
     const newSettings = changes.settings.newValue;
     if (newSettings?.autoSleepEnabled !== undefined) {
       await setupAutoSleep();
     }
+    invalidateStartupSuspendCaches();
+  }
+  if (changes.whitelist) {
+    startupSuspend.whitelist = null;
+  }
+  if (changes.lockedTabs) {
+    startupSuspend.lockedTabs = null;
   }
 });
 

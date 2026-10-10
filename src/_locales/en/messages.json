@@ -305,6 +305,26 @@
     "message": "Tabs will be slept after being inactive for this duration",
     "description": "Setting description"
   },
+  "startupSuspendTitle": {
+    "message": "Startup Suspend",
+    "description": "Startup suspend section title"
+  },
+  "startupSuspendEnabled": {
+    "message": "Suspend restored tabs at startup",
+    "description": "Setting label"
+  },
+  "startupSuspendEnabledDesc": {
+    "message": "Tabs restored at browser startup stay unloaded and load only when clicked, keeping memory low when the browser reopens many tabs",
+    "description": "Setting description"
+  },
+  "startupIncludePinned": {
+    "message": "Include pinned tabs",
+    "description": "Setting label"
+  },
+  "startupIncludePinnedDesc": {
+    "message": "Pinned tabs are also kept unloaded at startup (default: off)",
+    "description": "Setting description"
+  },
   "commandSleepCurrentTab": {
     "message": "Sleep current tab",
     "description": "Keyboard shortcut description"

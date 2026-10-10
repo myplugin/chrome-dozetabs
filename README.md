@@ -6,6 +6,7 @@ A Chrome extension that allows you to hibernate inactive tabs to save memory and
 
 - **Sleep Current Tab**: Quickly put the active tab to sleep with one click
 - **Sleep All Other Tabs**: Hibernate all tabs except the current one
+- **Startup Suspend** (启动抢先休眠): Tabs restored at browser startup stay unloaded instead of all loading at once - they load only when you click them. Prevents the multi-GB memory spike when the browser reopens one or two hundred tabs (uses only the native `chrome.tabs.discard()`; no tab closing, no fake pages)
 - **Auto Sleep**: Automatically sleep tabs after configurable inactivity period
 - **Auto Wake**: Click on a sleeping tab to automatically reload it
 - **State Preservation**: Optionally save scroll position and form data
@@ -109,6 +110,15 @@ Access settings by:
 | Sleep after (minutes) | Minutes of inactivity before auto sleep | 30 |
 
 Note: Auto sleep respects all exclusion rules (pinned, audio, whitelist, locked tabs).
+
+### Startup Suspend
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Suspend restored tabs at startup | Tabs restored at browser startup stay unloaded; click to load | On |
+| Include pinned tabs | Also keep pinned tabs unloaded at startup | Off |
+
+When the browser reopens many tabs, they stay unloaded instead of all loading at once — this is what prevents the multi-GB memory spike. Only the tab you're viewing loads; every other tab loads when you click it.
 
 ### State Preservation
 
@@ -236,6 +246,11 @@ Some forms use complex JavaScript that can't be captured. Basic forms should wor
 ### Extension icon not showing
 
 Make sure you've generated the PNG icons using the icon-generator.html file.
+
+## Testing
+
+- **Unit tests** (no browser needed): `node tests/startup-suspend.test.mjs` — validates the startup-suspend logic with mocked chrome APIs.
+- **E2E smoke test** (real Edge, 12-tab A/B): `python scripts/smoke-test.py --tabs 12` — see `docs/STARTUP-SUSPEND-TEST.md` for the full 200-tab acceptance procedure and the before/after comparison table.
 
 ## License
 

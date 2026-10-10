@@ -305,6 +305,26 @@
     "message": "标签页不活跃达到此时间后将被休眠",
     "description": "设置描述"
   },
+  "startupSuspendTitle": {
+    "message": "启动抢先休眠",
+    "description": "启动抢先休眠部分标题"
+  },
+  "startupSuspendEnabled": {
+    "message": "启动时抢先休眠恢复的标签页",
+    "description": "设置标签"
+  },
+  "startupSuspendEnabledDesc": {
+    "message": "浏览器启动时恢复的标签页保持未加载状态，点击时才加载，避免重启恢复大量标签页时内存飙升",
+    "description": "设置描述"
+  },
+  "startupIncludePinned": {
+    "message": "启动休眠包含固定标签页",
+    "description": "设置标签"
+  },
+  "startupIncludePinnedDesc": {
+    "message": "启动时固定标签页也保持未加载（默认关闭）",
+    "description": "设置描述"
+  },
   "commandSleepCurrentTab": {
     "message": "休眠当前标签页",
     "description": "键盘快捷键描述"

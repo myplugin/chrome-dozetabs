@@ -156,6 +156,14 @@ export async function incrementWakeCount(count = 1) {
 }
 
 /**
+ * Reset statistics to their defaults
+ * @returns {Promise<void>}
+ */
+export async function resetStatistics() {
+  await setStorage({ [STORAGE_KEYS.STATISTICS]: DEFAULT_STATISTICS });
+}
+
+/**
  * Get locked tabs from storage
  * @returns {Promise<Set<number>>} - Set of locked tab IDs
  */
