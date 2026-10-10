@@ -81,4 +81,4 @@
 
 ## 参与与许可
 
-MIT License，欢迎提 Pull Request。本项目灵感来自 The Great Suspender、Tab Discard 与 Firefox 的 Tab Unload 功能。
+MIT License，详见 [LICENSE](LICENSE)，欢迎提 Pull Request。本项目灵感来自 The Great Suspender、Tab Discard 与 Firefox 的 Tab Unload 功能。

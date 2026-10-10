@@ -81,4 +81,4 @@ The whitelist ships with common collaboration tools (Gmail, Slack, Notion, Figma
 
 ## Contributing & license
 
-MIT License — PRs welcome. Inspired by The Great Suspender, Tab Discard, and Firefox's Tab Unload.
+MIT License — see [LICENSE](LICENSE). PRs welcome. Inspired by The Great Suspender, Tab Discard, and Firefox's Tab Unload.
