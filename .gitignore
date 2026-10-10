@@ -10,6 +10,9 @@ dist/
 # Local agent session data
 .dsh/
 
+# Local-only tool configs (machine-specific, never commit)
+.claude/settings.local.json
+
 # IDE
 .idea/
 .vscode/

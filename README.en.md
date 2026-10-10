@@ -76,8 +76,10 @@ The whitelist ships with common collaboration tools (Gmail, Slack, Notion, Figma
 
 ## Privacy
 
-- No data collection, no network requests.
+- No data collection — nothing is ever sent to any server.
+- The only outbound requests load each site's own favicon (the same thing the browser itself does), and only while the popup list is open.
 - Everything lives in local `chrome.storage.local`. No external services.
+- Why the "read all websites" permission: sleep/wake captures scroll position and form contents (passwords excluded) locally on your machine — nothing leaves it.
 
 ## Contributing & license
 
