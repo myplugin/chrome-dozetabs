@@ -1,0 +1,86 @@
+name: Bug report
+description: Something behaves differently from what the docs promise
+title: '[Bug] '
+labels: ['bug', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Two minutes of detail here saves a round-trip later.
+
+        Please check the [README FAQ](../../README.md#常见问题) first — the most
+        common answers ("a tab won't sleep", "form contents didn't come back") live there.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what actually happened.
+      placeholder: |
+        1. Opened 40 tabs
+        2. Clicked "sleep all other tabs"
+        3. Expected ~39 sleeping tabs, but the counter shows 12
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part is affected?
+      options:
+        - Sleeping a tab (single)
+        - Sleeping all other tabs (batch)
+        - Waking / restoring a tab
+        - Startup suspend (browser restart)
+        - Auto sleep
+        - Whitelist / locks
+        - Options page
+        - Popup
+        - Packaged build / installation
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Shown at the bottom of the options page, or in `src/manifest.json`.
+      placeholder: '1.0.0'
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: e.g. "Chrome 131.0.6778.86" — `chrome://version/` or `edge://version/`
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: 'Windows 11 24H2 / macOS 15.1 / Ubuntu 24.04'
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Service worker console output
+      description: |
+        `chrome://extensions/` → enable Developer mode → click the "service worker"
+        link on the extension card. Paste anything logged with a `[Tab Sleep]` prefix.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, screen recordings, related issues.
+    validations:
+      required: false

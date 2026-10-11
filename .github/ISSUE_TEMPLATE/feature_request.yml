@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest a capability the extension does not have yet
+title: '[Feature] '
+labels: ['enhancement', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please skim the [roadmap](../../docs/ROADMAP.md) and the
+        "Non-goals" section of the README: some ideas are deliberately out of scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and where does it hurt today?
+      placeholder: 'I keep a set of tabs for a weekly report and re-sleep them by hand every Monday.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including other extensions — it is useful to know what already exists.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: permissions
+    attributes:
+      label: Does this need new browser permissions?
+      description: |
+        New permissions change the install prompt for every existing user, so it
+        is a significant trade-off we discuss explicitly.
+      options:
+        - 'No / not sure'
+        - 'Yes — and here is why it is worth it'
+    validations:
+      required: true

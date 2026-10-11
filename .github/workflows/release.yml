@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish (e.g. v1.0.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Full check (never publish an unverified build)
+        run: npm run check
+
+      - name: Build the store package
+        run: npm run build
+
+      - name: Verify the tag matches the manifest version
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION=$(node -p "require('./src/manifest.json').version")
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "::error::tag $TAG does not match manifest version $VERSION"
+            exit 1
+          fi
+
+      - name: Extract the changelog section for this version
+        id: changelog
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./src/manifest.json').version")
+          node tool/changelog-section.js "$VERSION" > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          files: dist/*.zip
+          fail_on_unmatched_files: true

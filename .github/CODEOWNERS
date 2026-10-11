@@ -1,0 +1,11 @@
+# Default owner for everything in this repository.
+# See https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @pycv
+
+# The permission surface and the sleep decision are security-relevant: any
+# change here deserves an explicit review.
+/src/manifest.json @pycv
+/src/utils/whitelist.js @pycv
+/src/utils/storage.js @pycv
+/.github/ @pycv

@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  # Every branch push (tags excluded — release.yml handles those).
+  push:
+    branches: ['**']
+  # Opened / updated / reopened pull requests.
+  pull_request:
+  # Manual run from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Lint the real-browser scripts (Python)
+        run: |
+          python3 -m pip install --quiet -r scripts/requirements-dev.txt
+          python3 -m pyflakes scripts
+
+      - name: Validate manifest, locales and message protocol
+        run: npm run validate
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Coverage report
+        if: matrix.node == '22'
+        run: npm run test:coverage
+
+  package:
+    name: package extension
+    runs-on: ubuntu-latest
+    needs: check
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the store package
+        run: npm run build
+
+      - name: Verify the archive layout
+        run: |
+          set -euo pipefail
+          ZIP=$(ls dist/*.zip)
+          echo "Archive: $ZIP"
+          # Chrome Web Store rejects archives with a nested top-level folder,
+          # and an unreadable manifest.json.
+          unzip -l "$ZIP"
+          unzip -p "$ZIP" manifest.json | head -5
+          unzip -p "$ZIP" manifest.json > /dev/null
+          if unzip -l "$ZIP" | grep -qE '[^/]+/manifest\.json'; then
+            echo "::error::manifest.json must sit at the archive root"
+            exit 1
+          fi
+
+      - name: Upload the extension package
+        uses: actions/upload-artifact@v4
+        with:
+          name: tab-sleep-extension
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 30

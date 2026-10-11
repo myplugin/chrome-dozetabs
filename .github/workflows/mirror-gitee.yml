@@ -1,0 +1,82 @@
+name: Mirror from Gitee
+
+# Gitee is the primary development platform for this project; GitHub is the
+# public mirror. Gitee's own mirror feature would need an account binding, so the
+# sync runs here instead, on a schedule.
+#
+# Note: refs pushed with the workflow's own GITHUB_TOKEN do NOT trigger other
+# workflows (GitHub suppresses that to avoid recursion), so this job runs the
+# checks itself rather than expecting ci.yml to fire afterwards.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *' # every six hours
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-gitee
+  cancel-in-progress: false
+
+env:
+  GITEE_REPO: xplugins/chrome-tab-sleep
+
+jobs:
+  mirror:
+    name: sync refs, then verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Mirror Gitee refs onto GitHub
+        env:
+          # Set a GITEE_TOKEN secret only if the Gitee repository is private.
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${GITEE_TOKEN:-}" ]; then
+            SOURCE="https://oauth2:${GITEE_TOKEN}@gitee.com/${GITEE_REPO}.git"
+          else
+            SOURCE="https://gitee.com/${GITEE_REPO}.git"
+          fi
+
+          git clone --mirror "$SOURCE" source.git
+          cd source.git
+
+          echo "Source refs:"
+          git for-each-ref --format='  %(refname) %(objectname:short)' refs/heads refs/tags
+
+          git push --mirror \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+      - name: Check out the freshly mirrored revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Full check
+        run: npm run check
+
+      - name: Build the store package
+        run: npm run build
+
+      - name: Verify the archive layout
+        run: |
+          set -euo pipefail
+          ZIP=$(ls dist/*.zip)
+          unzip -p "$ZIP" manifest.json > /dev/null
+          if unzip -l "$ZIP" | grep -qE '[^/]+/manifest\.json'; then
+            echo "::error::manifest.json must sit at the archive root"
+            exit 1
+          fi
+          echo "package ok: $ZIP"
