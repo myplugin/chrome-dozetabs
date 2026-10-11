@@ -1,24 +1,45 @@
 {
-  "name": "tab-sleep-tool",
+  "name": "tab-sleep",
   "version": "1.0.0",
-  "description": "A Chrome extension that hibernates inactive tabs to save memory",
+  "private": true,
+  "description": "Chrome/Edge extension that hibernates inactive tabs via chrome.tabs.discard() to keep memory and CPU low",
   "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:startup": "node tests/startup-suspend.test.mjs",
-    "test:i18n": "node tests/i18n-check.mjs"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --test",
+    "test:startup": "node --test tests/startup-suspend.test.mjs tests/startup-suspend-reload.test.mjs",
+    "test:lifecycle": "node --test tests/tab-lifecycle.test.mjs",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "test:i18n": "node tool/validate.js --only i18n",
+    "validate": "node tool/validate.js",
+    "check": "npm run format:check && npm run lint && npm run validate && npm test",
+    "lint:py": "python -m pyflakes scripts",
+    "verify:browser": "python scripts/verify-in-browser.py",
+    "smoke:browser": "python scripts/smoke-test.py",
+    "build": "node tool/build.js"
   },
   "devDependencies": {
-    "vitest": "^1.6.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10"
   },
   "keywords": [
     "chrome-extension",
-    "tab",
-    "sleep",
+    "manifest-v3",
+    "tab-sleep",
+    "tab-discard",
+    "tab-management",
     "memory",
-    "suspend"
+    "hibernate",
+    "suspend",
+    "productivity"
   ],
   "author": "pef",
   "license": "MIT"

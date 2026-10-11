@@ -1,0 +1,6 @@
+dist/
+coverage/
+node_modules/
+.npm-cache/
+package-lock.json
+src/assets/

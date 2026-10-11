@@ -4,16 +4,8 @@
   "version": "1.0.0",
   "description": "__MSG_extDesc__",
   "default_locale": "en",
-  "permissions": [
-    "tabs",
-    "storage",
-    "contextMenus",
-    "scripting",
-    "alarms"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["tabs", "storage", "contextMenus", "scripting", "alarms"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background/service-worker.js",
     "type": "module"

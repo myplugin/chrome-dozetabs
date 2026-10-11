@@ -7,6 +7,13 @@ coverage/
 # Build output
 dist/
 
+# Local npm cache (used when the user-level cache is not writable)
+.npm-cache/
+
+# Python bytecode from running the real-browser scripts
+__pycache__/
+*.pyc
+
 # Local agent session data
 .dsh/
 
@@ -31,3 +38,8 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+
+# Signing material — never commit a private key
+*.pem
+*.p12
+*.crx

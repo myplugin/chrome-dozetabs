@@ -1,0 +1,23 @@
+# Normalize every text file to LF in the repository, so that Windows and
+# Unix contributors produce byte-identical blobs.
+* text=auto eol=lf
+
+# Windows batch files must keep CRLF in the working tree: cmd.exe mis-parses
+# LF-only files around goto/label jumps.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets must never be normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
+*.crx binary
+*.pem binary
+
+# Generated files: mark as generated so GitHub collapses them in diffs.
+package-lock.json linguist-generated=true
