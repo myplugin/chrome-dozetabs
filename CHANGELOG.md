@@ -1,0 +1,119 @@
+# 更新日志 / Changelog
+
+本文件记录所有值得注意的变更。
+
+格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
+版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+`src/manifest.json` 的 `version` 字段是版本号的唯一来源。
+
+## [Unreleased]
+
+一次面向开源协作的整体工程化整改：修复阻断级缺陷、拆分核心模块、重建测试与
+工具链，并补齐治理与架构文档。对外行为**基本保持不变**，例外见下方「变更」。
+
+### 修复
+
+- **真机测试钩子回归**：给 `sweepStartupTabs()` 加上「必须窗口打开」的授权检查后，
+  `scripts/smoke-test.py` 依赖的「写 `chrome.storage.session` + 手动触发清扫」路径
+  失效——新代码只在 Service Worker 启动时读取窗口边界一次。生产路径（`onStartup`）
+  不受影响；现已通过 `adoptStartupWindowFromSession()` 修复，并保留
+  「只有打开的窗口才允许丢弃标签页」这一不变量。
+- **弹窗「唤醒」按钮从未触发状态恢复**：弹窗直接调用 `chrome.tabs.reload()`，
+  绕过了 Service Worker 的唤醒处理，导致滚动位置/表单内容恢复与唤醒计数
+  在这条路径上完全失效。现在统一经由 `WAKE_TAB` 消息处理。
+- **批量休眠时统计与状态丢失**：`incrementSleepCount()`、`saveSleepingTab()` 等
+  读-改-写操作在不同时并发保护下会互相覆盖。现在按存储键串行化
+  （`utils/storage.js:withStorageLock()`）。
+- **自动休眠实际上很少生效**：空闲时间记录只存在于 Service Worker 内存中，
+  而 MV3 的 Worker 约 30 秒空闲即被回收，导致每个标签页的计时器被反复重置。
+  现在记录持久化到 `chrome.storage.session`，并改为跨所有窗口判断。
+- **休眠当前标签页会不断产生空白标签页**：原先总是新建 `about:blank`。
+  现在优先切到相邻标签页，仅在窗口无其他可用标签页时才新建。
+- **`node tool/build.js` 无法运行**：`package.json` 为 `"type": "module"`，
+  而脚本使用 `require()`，直接抛出 `ReferenceError`。
+- **`tool/build.sh` 产出的 zip 结构错误**：把整个目录作为顶层项打包
+  （`tab-sleep-v1.0.0/manifest.json`），会被 Chrome 应用商店拒绝。
+- **`confirmSleepAll` 是「幽灵设置」**：README 与单元测试都声称存在
+  「休眠其他标签页前先确认」，但代码从未实现、选项页也没有开关。现已完整实现
+  （选项页开关 + 弹窗确认框）。
+- 选项页页脚硬编码版本号 `v1.0.0`，现在从 `chrome.runtime.getManifest()` 读取。
+- 扩展安装/更新触发的 Worker 重载不再可能误开启动休眠窗口，
+  并为该不变量补上独立测试。
+- `handleMessage()` 现在拒绝来自其他扩展的消息（`sender.id` 校验），
+  并通过 `sanitizeSettings()` 丢弃设置中的未知键。
+
+### 变更
+
+- **「休眠其他标签页」默认会先弹出确认框**（与 README 早已声明的行为一致，
+  可在选项页关闭）。
+- 休眠失败的原因由英文句子改为稳定的原因码，由界面按当前语言渲染
+  （新增 8 条中英文案）。
+
+### 重构
+
+- `src/background/service-worker.js` 由 **1025 行**拆分为 10 个职责单一的模块，
+  入口文件只保留事件接线（约 150 行），不再包含业务规则。
+- 消除三处重复实现：白名单/域名匹配、浏览器内部页面判定、标签页休眠状态判定；
+  表单采集因内容脚本无法 `import` 而保留一份精简实现，并在架构文档中说明原因。
+- 删除全部死代码：未被处理的消息类型（`getTabState`/`saveTabState`/
+  `restoreTabState`/`updateBadge`/`isTabLocked`/`getStartupStatus`/`autoSleepStatus`）、
+  未使用的 `ICONS` 与 `CHROME_INTERNAL_SCHEMES` 副本、内容脚本中无人发送的
+  `captureState`/`restoreState` 协议、打包脚本中的无用引用。
+- 休眠状态恢复不再依赖 `setTimeout(5000)` 清理：状态在休眠时即已落盘，
+  页面唤醒时通过 `consumeRestoreState` **一次性**领取并立即删除，消除了时序竞态。
+- 批量休眠与自动休眠改为一次性加载设置/白名单/锁（原先每个标签页重复读取 3 次）。
+
+### 工程化
+
+- 新增 **ESLint 10**（flat config）与 **Prettier**，`.editorconfig`、`.gitattributes`、
+  `.nvmrc`；`npm run check` 一条命令跑完格式、静态检查、一致性校验与测试。
+- 测试栈从 vitest 迁移到 **Node 内置 `node:test`**，实现零运行时依赖的测试：
+  断言数由 37 增至 **115**，覆盖存储层并发、设置清洗、休眠判定矩阵、
+  消息路由与启动休眠不变量；`tests/helpers/chrome-mock.js` 提供可复用的 chrome API 模拟。
+- 新增 `tool/validate.js`：校验 manifest 引用、多语言 key 对齐、
+  消息类型「声明即处理」，并修正了原 i18n 检查脚本的误报
+  （把 `Event('input'` 误判为 `t('input'`，以及漏掉 `data-i18n-placeholder`）。
+- 打包工具重写为单一实现 `tool/build.js` + 自研零依赖 `tool/zip.js`：
+  不再依赖 `zip`/PowerShell，跨平台产出一致，条目位于压缩包根目录。
+- 新增 GitHub Actions CI（Node 20/22/24 矩阵 + 打包校验）与 Release 工作流。
+- 新增 `.github/workflows/mirror-gitee.yml`：Gitee（主平台）→ GitHub（镜像）
+  每 6 小时自动同步分支与 tag，并在同一次运行里完成校验与打包。
+- 重构真机脚本：抽出 `scripts/_browser.py`；删除 `popup-e2e-probe.py`（未定义变量
+  导致每次必崩、从未完整跑通）与 `sw-log-probe.py`（检查失败仍返回 0，假绿）；
+  新增 `scripts/verify-in-browser.py`——38 项断言、退出码可信，覆盖扩展加载、
+  设置默认值、弹窗与选项页渲染、状态采集（含密码排除）与唤醒恢复握手。
+- `scripts/measure-memory.ps1` 支持 `-Profile` 过滤与 `-MaxWorkingSetGb` 阈值退出码，
+  并补 UTF-8 BOM 以修正 Windows PowerShell 5.1 下的中文乱码。
+- 新增 Python 静态检查（`pyflakes`，`npm run lint:py`）并接入 CI：这类检查能在不启动
+  浏览器的情况下抓出 `active_before` 那种未定义变量错误。
+- 补齐开源治理文件：CONTRIBUTING、CODE_OF_CONDUCT、SECURITY、PRIVACY、
+  CHANGELOG、Issue/PR 模板、CODEOWNERS、Dependabot。
+
+### 移除
+
+- `tool/build.sh`、`tool/build.bat`（与 `build.js` 三份实现互相漂移）、
+  `vitest.config.js`、`tests/i18n-check.mjs`（由 `tool/validate.js` 取代）、
+  `scripts/popup-e2e-probe.py`、`scripts/sw-log-probe.py`（由
+  `scripts/verify-in-browser.py` 取代）。
+
+### 尚未发布
+
+仓库尚无 git tag，本节内容将作为 **1.1.0** 发布。
+
+## [1.0.0] - 2026-03-17
+
+首个公开版本。
+
+### 新增
+
+- 基于 Chrome 原生 `chrome.tabs.discard()` 的标签页休眠：休眠当前页 / 休眠其他页
+- **启动抢先休眠**：浏览器重启后恢复的标签页保持未加载，点击才加载
+- 自动休眠（按空闲时长）
+- 唤醒时恢复滚动位置与表单内容（不含密码）
+- 域名白名单（支持 `*.example.com` 通配）与单个标签页锁定
+- 智能排除：固定标签页、正在播放声音的标签页、浏览器内部页面
+- 中英文国际化、右键菜单、`Alt+S` / `Alt+Shift+S` 快捷键、图标角标计数
+- 打包脚本与三层测试（单元 / 逻辑 / 真机冒烟）
+
+[Unreleased]: https://github.com/myplugin/chrome-tab-sleep/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/myplugin/chrome-tab-sleep/releases/tag/v1.0.0
