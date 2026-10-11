@@ -1,6 +1,7 @@
 import {
   getSleepingTabs,
   removeSleepingTab,
+  removeSleepingTabs,
   saveSleepingTab,
   incrementSleepCount,
   incrementWakeCount
@@ -133,6 +134,33 @@ export async function consumeRestoreState(tabId) {
  */
 export async function forgetTab(tabId) {
   await removeSleepingTab(tabId);
+}
+
+/**
+ * Drop saved state whose tab no longer exists.
+ *
+ * A tab that is slept and then lost to a crash (or simply never woken) leaves an
+ * entry behind. Tab ids are only unique within a browser run, so such an entry
+ * can later collide with a freshly assigned id and apply the wrong scroll
+ * position or form data to an unrelated page. Called on browser start, before
+ * session restore has handed out ids.
+ *
+ * @returns {Promise<number>} number of stale entries removed
+ */
+export async function pruneSleepingTabs() {
+  const [sleepingTabs, tabs] = await Promise.all([getSleepingTabs(), queryAllTabs({})]);
+  const alive = new Set(tabs.map((tab) => tab.id));
+  const stale = Object.keys(sleepingTabs)
+    .map(Number)
+    .filter((tabId) => !alive.has(tabId));
+
+  if (stale.length === 0) return 0;
+
+  const removed = await removeSleepingTabs(stale);
+  if (removed > 0) {
+    console.log('[Tab Sleep] Pruned', removed, 'stale tab-state entries');
+  }
+  return removed;
 }
 
 /**

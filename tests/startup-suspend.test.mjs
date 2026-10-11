@@ -184,6 +184,34 @@ describe('settings integrity', () => {
   });
 });
 
+describe('stale state cleanup on browser start', () => {
+  it('drops saved state whose tab no longer exists', async () => {
+    // Tab ids are session-scoped: an entry left over from a crashed run can
+    // collide with a freshly assigned id and restore the wrong page state.
+    state.tabs = [makeTab(1)];
+    await chrome.storage.local.set({
+      sleepingTabs: { 1: { tabId: 1, sleptAt: 1 }, 999: { tabId: 999, sleptAt: 1 } }
+    });
+
+    await chrome.runtime.onStartup.trigger();
+
+    const { sleepingTabs } = await chrome.storage.local.get('sleepingTabs');
+    assert.deepEqual(Object.keys(sleepingTabs), ['1'], 'only the live tab keeps its state');
+  });
+
+  it('keeps everything when every entry is still live', async () => {
+    state.tabs = [makeTab(11), makeTab(12)];
+    await chrome.storage.local.set({
+      sleepingTabs: { 11: { tabId: 11 }, 12: { tabId: 12 } }
+    });
+
+    await chrome.runtime.onStartup.trigger();
+
+    const { sleepingTabs } = await chrome.storage.local.get('sleepingTabs');
+    assert.deepEqual(Object.keys(sleepingTabs).sort(), ['11', '12']);
+  });
+});
+
 describe('message routing', () => {
   it('reports unknown message types instead of throwing', async () => {
     const response = await sendMessage(chrome, { type: 'notARealMessage' });

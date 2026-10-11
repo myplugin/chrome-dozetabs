@@ -11,7 +11,7 @@ import { updateBadge, updateBadgeSoon } from './badge.js';
 import { sleepAllOtherTabs } from './batch.js';
 import { createContextMenus, handleContextMenuClick } from './menus.js';
 import { registerMessageRouter } from './router.js';
-import { forgetTab, sleepTab, wakeTab } from './sleep.js';
+import { forgetTab, pruneSleepingTabs, sleepTab, wakeTab } from './sleep.js';
 import {
   handleStartupTabCreated,
   handleStartupTabLoading,
@@ -40,6 +40,7 @@ const startupSuspendReady = initStartupSuspend();
 
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeStorage();
+  await pruneSleepingTabs();
   await createContextMenus();
   await setupAutoSleep();
   console.log('[Tab Sleep] Extension installed/updated');
@@ -56,6 +57,10 @@ chrome.runtime.onStartup.addListener(async () => {
   }
 
   await initializeStorage();
+  // Tab ids are session-scoped, so anything saved by the previous run is dead
+  // weight at best and a wrong-state hazard at worst. Do this before session
+  // restore hands out new ids.
+  await pruneSleepingTabs();
   await createContextMenus();
   await updateBadge();
   await setupAutoSleep();

@@ -14,6 +14,7 @@ import {
   isTabLocked,
   lockTab,
   removeSleepingTab,
+  removeSleepingTabs,
   saveSettings,
   saveSleepingTab,
   unlockTab
@@ -133,6 +134,28 @@ describe('sleeping tab state', () => {
     await removeSleepingTab(99);
     const sleepingTabs = await getSleepingTabs();
     assert.deepEqual(Object.keys(sleepingTabs), ['2']);
+  });
+
+  it('removes several entries in one write and reports how many existed', async () => {
+    await saveSleepingTab(1, {});
+    await saveSleepingTab(2, {});
+    await saveSleepingTab(3, {});
+
+    const removed = await removeSleepingTabs([2, 3, 99]);
+    assert.equal(removed, 2, 'tab 99 never existed');
+    assert.deepEqual(Object.keys(await getSleepingTabs()), ['1']);
+  });
+
+  it('does not write when nothing matches', async () => {
+    await saveSleepingTab(1, { sleptAt: 1 });
+    const before = structuredClone(state.local[STORAGE_KEYS.SLEEPING_TABS]);
+    assert.equal(await removeSleepingTabs([42]), 0);
+    assert.deepEqual(state.local[STORAGE_KEYS.SLEEPING_TABS], before);
+  });
+
+  it('handles an empty or missing id list', async () => {
+    assert.equal(await removeSleepingTabs([]), 0);
+    assert.equal(await removeSleepingTabs(undefined), 0);
   });
 });
 

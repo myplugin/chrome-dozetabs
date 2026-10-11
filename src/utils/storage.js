@@ -140,6 +140,28 @@ export async function removeSleepingTab(tabId) {
   });
 }
 
+/**
+ * Remove several tab states in one locked read-modify-write.
+ * @param {number[]} tabIds
+ * @returns {Promise<number>} how many entries actually existed and were removed
+ */
+export async function removeSleepingTabs(tabIds) {
+  if (!Array.isArray(tabIds) || tabIds.length === 0) return 0;
+
+  return withStorageLock(STORAGE_KEYS.SLEEPING_TABS, async () => {
+    const sleepingTabs = await getSleepingTabs();
+    let removed = 0;
+    for (const tabId of tabIds) {
+      if (tabId in sleepingTabs) {
+        delete sleepingTabs[tabId];
+        removed++;
+      }
+    }
+    if (removed > 0) await setStorage({ [STORAGE_KEYS.SLEEPING_TABS]: sleepingTabs });
+    return removed;
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Statistics
 // ---------------------------------------------------------------------------
