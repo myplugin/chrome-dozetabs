@@ -100,7 +100,15 @@ git push github master --tags     # 双推：让镜像立刻跟上（可选）
 ### 定时同步（Gitee → GitHub）
 
 即使忘了双推也不会漂移：`.github/workflows/mirror-gitee.yml` 每 6 小时把 Gitee 的
-分支与 tag `git push --mirror` 到 GitHub，也可以手动触发。
+分支与 tag 同步到 GitHub，也可以手动触发。
+
+**同步是「快进（fast-forward）优先」的，绝不倒退 GitHub。** 它刻意**不用**
+`git push --mirror`——那会强制更新每一个 ref，于是当 Gitee 落后时（例如你刚把改动
+直接推到了 GitHub），同步会**把 GitHub 静默倒退**，丢掉更新的提交。现在的做法是
+不带 force 推送：落后的分支会被拒绝，任务红掉并给出警告，而不是默默毁掉数据。
+
+因此：**日常请推 Gitee（`origin`）**；只推 GitHub 时同步任务会报警并在 6 小时窗口内
+持续失败，直到你把 Gitee 补上。
 
 两个必须知道的限制：
 

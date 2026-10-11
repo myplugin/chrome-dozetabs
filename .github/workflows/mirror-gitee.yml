@@ -48,8 +48,32 @@ jobs:
           echo "Source refs:"
           git for-each-ref --format='  %(refname) %(objectname:short)' refs/heads refs/tags
 
-          git push --mirror \
-            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          DEST="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+          echo
+          echo "Checking whether GitHub is ahead of Gitee..."
+          git fetch --quiet "$DEST" '+refs/heads/*:refs/from-github/*' || true
+          behind=0
+          for ref in $(git for-each-ref --format='%(refname)' refs/heads); do
+            branch=${ref#refs/heads/}
+            remote_ref="refs/from-github/$branch"
+            if git rev-parse --verify --quiet "$remote_ref" >/dev/null; then
+              if ! git merge-base --is-ancestor "$remote_ref" "$ref"; then
+                echo "::warning::$branch on GitHub has commits Gitee does not"
+                behind=1
+              fi
+            fi
+          done
+          if [ "$behind" = "1" ]; then
+            echo "::warning::GitHub is ahead. The sync below is fast-forward-only and will"
+            echo "::warning::be rejected rather than rewind GitHub. Push your Gitee remote first:"
+            echo "::warning::    git push origin <branch>"
+          fi
+
+          # Deliberately NOT `git push --mirror`. --mirror force-updates every ref,
+          # so a Gitee checkout that is behind would silently REWIND GitHub and lose
+          # the newer commits. Pushing without force turns that into a loud failure.
+          git push "$DEST" "refs/heads/*:refs/heads/*" "refs/tags/*:refs/tags/*"
 
       - name: Check out the freshly mirrored revision
         uses: actions/checkout@v4
