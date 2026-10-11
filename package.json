@@ -6,7 +6,9 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:startup": "node tests/startup-suspend.test.mjs",
+    "test:i18n": "node tests/i18n-check.mjs"
   },
   "devDependencies": {
     "vitest": "^1.6.0"

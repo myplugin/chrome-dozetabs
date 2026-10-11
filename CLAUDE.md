@@ -68,6 +68,19 @@ This state is stored in `chrome.storage.local` under `sleepingTabs[tabId]`.
 - **Popup logs**: Right-click popup → Inspect
 - All logs use `[Tab Sleep]` prefix
 
+## Testing (three layers)
+
+| Layer | Command | Deps | Covers |
+|-------|---------|------|--------|
+| Unit (vitest) | `npm test` (`npm install` first) | vitest | `tests/*.test.js` — whitelist, constants |
+| Logic (node) | `npm run test:startup` | none | `tests/startup-suspend.test.mjs` — 13 assertions on startup-suspend with mocked chrome APIs; reliable in any env incl. CI |
+| i18n parity | `npm run test:i18n` | none | `tests/i18n-check.mjs` — en/zh key parity + used-but-undefined keys (informational) |
+| Smoke (real browser) | `python scripts/smoke-test.py --tabs 12` | Playwright + desktop Edge/Chrome | 12-tab A/B; full 200-tab procedure in `docs/STARTUP-SUSPEND-TEST.md` |
+
+## Packaging
+
+- `node tool/build.js [version]` (or `tool/build.sh` / `tool/build.bat`) — zips `src/` into `dist/tab-sleep-v<version>.zip` for store submission. No external npm dependencies.
+
 ## Common Modifications
 
 ### Adding a new setting

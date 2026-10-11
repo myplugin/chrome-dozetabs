@@ -66,7 +66,8 @@ The whitelist ships with common collaboration tools (Gmail, Slack, Notion, Figma
 - **The one-liner**: pages are unloaded with Chrome's native `chrome.tabs.discard()` while the tab itself — title, favicon, position — stays put. Compare before/after in Chrome's Task Manager (`Shift+Esc`).
 - **Limits**: in-page JS state (game progress, complex SPA state) isn't kept; fancy rich-text editors may not restore fully; internal pages like `chrome://` can't be slept.
 - **Startup suspend mechanics and acceptance procedure**: see [docs/STARTUP-SUSPEND-TEST.md](docs/STARTUP-SUSPEND-TEST.md).
-- **For developers** (layout, messaging, adding settings/translations): see [CLAUDE.md](CLAUDE.md). No build step — native ES modules run as-is. Tests: `node tests/startup-suspend.test.mjs` (unit), `python scripts/smoke-test.py --tabs 12` (smoke test on a real browser, see the doc above).
+- **For developers** (layout, messaging, adding settings/translations): see [CLAUDE.md](CLAUDE.md). No build step — native ES modules run as-is. Packaging: `node tool/build.js [version]` (or `tool/build.sh` / `tool/build.bat`), zip goes to `dist/`.
+- **Three test layers**: `npm test` (vitest unit tests, `npm install` first); `npm run test:startup` / `npm run test:i18n` (zero-dependency, plain node: 13 startup-suspend assertions + EN/ZH key parity check); `python scripts/smoke-test.py --tabs 12` (smoke test on a real browser, see the doc above).
 
 ## Troubleshooting
 

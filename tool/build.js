@@ -46,27 +46,8 @@ function getAllFiles(dir, baseDir = dir) {
   return files;
 }
 
-// Create zip file using built-in zlib (simple implementation)
-async function createZip(sourceDir, outputPath) {
-  const archiver = require('archiver');
-
-  return new Promise((resolve, reject) => {
-    const output = fs.createWriteStream(outputPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
-
-    output.on('close', () => {
-      console.log(`Zip created: ${archive.pointer()} bytes`);
-      resolve();
-    });
-
-    archive.on('error', reject);
-    archive.pipe(output);
-    archive.directory(sourceDir, false);
-    archive.finalize();
-  });
-}
-
-// Alternative: Simple zip without external dependency
+// Create zip file using system tools (no external dependency).
+// Uses PowerShell on Windows, zip command on Unix.
 async function createZipSimple(sourceDir, outputPath) {
   const { createReadStream, createWriteStream, promises: fsp } = require('fs');
   const { pipeline } = require('stream/promises');

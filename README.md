@@ -66,7 +66,8 @@
 - **原理一句话**：调用 Chrome 原生 `chrome.tabs.discard()` 卸载页面内容，标签页本身保留，标题和图标都在，点击即重载。可用 Chrome 任务管理器（`Shift+Esc`）对比验证内存变化。
 - **局限**：页面内的 JS 运行状态（如游戏进度、复杂单页应用状态）不会保留；复杂富文本编辑器的内容可能无法完整恢复；`chrome://` 这类浏览器内部页面无法休眠。
 - **启动抢先休眠的完整机制与验收步骤**：见 [docs/STARTUP-SUSPEND-TEST.md](docs/STARTUP-SUSPEND-TEST.md)。
-- **开发相关**（项目结构、消息机制、如何加设置项/翻译）：见 [CLAUDE.md](CLAUDE.md)；无需构建，原生 ES Module 直接跑。测试：`node tests/startup-suspend.test.mjs`（单元测试），`python scripts/smoke-test.py --tabs 12`（真机冒烟，详见上述文档）。
+- **开发相关**（项目结构、消息机制、如何加设置项/翻译）：见 [CLAUDE.md](CLAUDE.md)；无需构建，原生 ES Module 直接跑。打包上架：`node tool/build.js [版本号]`（或 `tool/build.sh` / `tool/build.bat`），zip 输出到 `dist/`。
+- **测试分三层**：`npm test`（vitest 单元测试，需先 `npm install`）；`npm run test:startup` / `npm run test:i18n`（无依赖，node 直接跑：启动休眠逻辑 13 项断言 + 中英翻译 key 一致性检查）；`python scripts/smoke-test.py --tabs 12`（真机冒烟，详见上述文档）。
 
 ## 常见问题
 
