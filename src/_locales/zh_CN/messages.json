@@ -7,10 +7,6 @@
     "message": "让不活跃的标签页休眠，节省内存和 CPU 资源",
     "description": "扩展描述"
   },
-  "sleepCurrentTab": {
-    "message": "休眠当前标签页",
-    "description": "休眠当前标签页按钮文本"
-  },
   "sleepOtherTabs": {
     "message": "休眠其他所有标签页",
     "description": "休眠其他所有标签页按钮文本"
@@ -277,10 +273,6 @@
     "message": "标签页已解锁",
     "description": "解锁成功提示"
   },
-  "tabIsLocked": {
-    "message": "标签页已锁定",
-    "description": "标签页因锁定而无法休眠的原因"
-  },
   "failedToLockTab": {
     "message": "锁定/解锁标签页失败",
     "description": "锁定/解锁失败时的错误提示"
@@ -332,5 +324,53 @@
   "commandSleepOtherTabs": {
     "message": "休眠其他所有标签页",
     "description": "键盘快捷键描述"
+  },
+  "confirmSleepAll": {
+    "message": "休眠其他标签页前先确认",
+    "description": "设置标签"
+  },
+  "confirmSleepAllDesc": {
+    "message": "批量休眠前先弹出确认提示",
+    "description": "设置描述"
+  },
+  "confirmSleepAllPrompt": {
+    "message": "确定要休眠除当前标签页之外的所有标签页吗？",
+    "description": "批量休眠前的确认提示"
+  },
+  "failedToLoadSettings": {
+    "message": "加载设置失败",
+    "description": "错误提示"
+  },
+  "reasonAlreadySleeping": {
+    "message": "标签页已处于休眠状态",
+    "description": "标签页无法休眠的原因"
+  },
+  "reasonLocked": {
+    "message": "标签页已加锁",
+    "description": "标签页无法休眠的原因"
+  },
+  "reasonEmptyTab": {
+    "message": "空白页或新标签页无需休眠",
+    "description": "标签页无法休眠的原因"
+  },
+  "reasonInternalPage": {
+    "message": "浏览器内部页面无法休眠",
+    "description": "标签页无法休眠的原因"
+  },
+  "reasonPinnedTab": {
+    "message": "设置中已排除固定标签页",
+    "description": "标签页无法休眠的原因"
+  },
+  "reasonAudibleTab": {
+    "message": "标签页正在播放声音",
+    "description": "标签页无法休眠的原因"
+  },
+  "reasonWhitelisted": {
+    "message": "该域名在白名单中",
+    "description": "标签页无法休眠的原因"
+  },
+  "reasonBatchRunning": {
+    "message": "已有批量休眠任务正在执行",
+    "description": "批量操作被拒绝的原因"
   }
 }

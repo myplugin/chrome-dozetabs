@@ -1,217 +1,143 @@
-import { MESSAGE_TYPES, DEFAULT_SETTINGS, DEFAULT_WHITELIST } from '../utils/constants.js';
+import {
+  AUTO_SLEEP,
+  DEFAULT_SETTINGS,
+  DEFAULT_WHITELIST,
+  MESSAGE_TYPES
+} from '../utils/constants.js';
+import { escapeHtml, showToast } from '../utils/dom.js';
+import { applyTranslations, t } from '../utils/i18n.js';
+import { normalizeDomainInput } from '../utils/whitelist.js';
 
-// i18n helper
-function t(key, substitutions) {
-  if (substitutions) {
-    return chrome.i18n.getMessage(key, substitutions);
-  }
-  return chrome.i18n.getMessage(key);
-}
+/**
+ * Options page: settings, whitelist and statistics.
+ *
+ * Every toggle writes the *complete* settings object (built by
+ * `collectSettings()`), so a newly added setting can never be dropped by an
+ * unrelated save. The service worker sanitises it again before persisting.
+ */
 
-// Apply i18n to all elements with data-i18n attribute
-function applyTranslations() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    el.textContent = t(key);
-  });
+// --- DOM ---------------------------------------------------------------------
 
-  // Apply placeholders
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.dataset.i18nPlaceholder;
-    el.placeholder = t(key);
-  });
-}
+const toggles = {
+  excludePinnedTabs: document.getElementById('excludePinned'),
+  excludeAudibleTabs: document.getElementById('excludeAudible'),
+  showBadge: document.getElementById('showBadge'),
+  preserveScrollPosition: document.getElementById('preserveScroll'),
+  preserveFormData: document.getElementById('preserveForm'),
+  confirmSleepAll: document.getElementById('confirmSleepAll'),
+  autoSleepEnabled: document.getElementById('autoSleepEnabled'),
+  startupSuspendEnabled: document.getElementById('startupSuspendEnabled'),
+  startupIncludePinned: document.getElementById('startupIncludePinned')
+};
 
-// DOM Elements
-const excludePinned = document.getElementById('excludePinned');
-const excludeAudible = document.getElementById('excludeAudible');
-const showBadge = document.getElementById('showBadge');
-const preserveScroll = document.getElementById('preserveScroll');
-const preserveForm = document.getElementById('preserveForm');
-const autoSleepEnabled = document.getElementById('autoSleepEnabled');
 const autoSleepTimeout = document.getElementById('autoSleepTimeout');
 const autoSleepTimeoutContainer = document.getElementById('autoSleepTimeoutContainer');
-const startupSuspendEnabled = document.getElementById('startupSuspendEnabled');
-const startupIncludePinned = document.getElementById('startupIncludePinned');
 const newDomainInput = document.getElementById('newDomain');
 const addDomainBtn = document.getElementById('addDomain');
 const whitelistList = document.getElementById('whitelistList');
-const totalSleptEl = document.getElementById('totalDiscarded');  // Element ID stays the same for HTML compatibility
+const totalSleptEl = document.getElementById('totalSlept');
 const totalWokenEl = document.getElementById('totalWoken');
 const resetStatsBtn = document.getElementById('resetStats');
+const versionEl = document.getElementById('versionText');
 
-// Current whitelist
 let currentWhitelist = [];
 
-// Initialize
+// --- Boot --------------------------------------------------------------------
+
 document.addEventListener('DOMContentLoaded', async () => {
-  // Apply translations
   applyTranslations();
 
-  await Promise.all([
-    loadSettings(),
-    loadWhitelist(),
-    loadStatistics()
-  ]);
+  if (versionEl) versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+
+  await Promise.all([loadSettings(), loadWhitelist(), loadStatistics()]);
 });
 
-// Load settings
+// --- Settings ----------------------------------------------------------------
+
 async function loadSettings() {
   try {
     const response = await sendMessage({ type: MESSAGE_TYPES.GET_SETTINGS });
-    const settings = response.settings || DEFAULT_SETTINGS;
+    const settings = { ...DEFAULT_SETTINGS, ...(response?.settings || {}) };
 
-    excludePinned.checked = settings.excludePinnedTabs;
-    excludeAudible.checked = settings.excludeAudibleTabs;
-    showBadge.checked = settings.showBadge;
-    preserveScroll.checked = settings.preserveScrollPosition;
-    preserveForm.checked = settings.preserveFormData;
-    autoSleepEnabled.checked = settings.autoSleepEnabled || false;
-    autoSleepTimeout.value = settings.autoSleepTimeout || 30;
-    startupSuspendEnabled.checked = settings.startupSuspendEnabled !== false; // default: on
-    startupIncludePinned.checked = settings.startupIncludePinned === true;   // default: off
+    for (const [key, element] of Object.entries(toggles)) {
+      if (element) element.checked = !!settings[key];
+    }
+
+    autoSleepTimeout.value = String(settings.autoSleepTimeout);
     updateAutoSleepTimeoutVisibility();
   } catch (error) {
-    console.error('Failed to load settings:', error);
+    console.error('[Tab Sleep] Failed to load settings:', error);
+    showToast(t('failedToLoadSettings'), 'error');
   }
 }
 
-// Update auto-sleep timeout visibility
-function updateAutoSleepTimeoutVisibility() {
-  autoSleepTimeoutContainer.style.opacity = autoSleepEnabled.checked ? '1' : '0.5';
-  autoSleepTimeout.disabled = !autoSleepEnabled.checked;
-}
-
-// Load whitelist
-async function loadWhitelist() {
-  try {
-    const response = await sendMessage({ type: MESSAGE_TYPES.GET_WHITELIST });
-    currentWhitelist = response.whitelist || DEFAULT_WHITELIST;
-    renderWhitelist();
-  } catch (error) {
-    console.error('Failed to load whitelist:', error);
-  }
-}
-
-// Load statistics
-async function loadStatistics() {
-  try {
-    const response = await sendMessage({ type: MESSAGE_TYPES.GET_STATISTICS });
-    const stats = response.statistics || {};
-
-    totalSleptEl.textContent = stats.totalSlept || 0;
-    totalWokenEl.textContent = stats.totalWoken || 0;
-  } catch (error) {
-    console.error('Failed to load statistics:', error);
-  }
-}
-
-// Collect the full settings object from the UI (single source of truth -
-// saving must always round-trip every key, otherwise keys get wiped)
+/** Read the whole settings object back out of the UI. */
 function collectSettings() {
-  return {
-    excludePinnedTabs: excludePinned.checked,
-    excludeAudibleTabs: excludeAudible.checked,
-    showBadge: showBadge.checked,
-    preserveScrollPosition: preserveScroll.checked,
-    preserveFormData: preserveForm.checked,
-    autoSleepEnabled: autoSleepEnabled.checked,
-    autoSleepTimeout: parseInt(autoSleepTimeout.value, 10) || 30,
-    startupSuspendEnabled: startupSuspendEnabled.checked,
-    startupIncludePinned: startupIncludePinned.checked
-  };
+  const settings = {};
+  for (const [key, element] of Object.entries(toggles)) {
+    settings[key] = element.checked;
+  }
+  settings.autoSleepTimeout = clampTimeout(autoSleepTimeout.value);
+  return settings;
 }
 
-// Save settings when toggles change
-[excludePinned, excludeAudible, showBadge, preserveScroll, preserveForm, autoSleepEnabled, startupSuspendEnabled, startupIncludePinned].forEach(toggle => {
-  toggle.addEventListener('change', async () => {
-    try {
-      await sendMessage({
-        type: MESSAGE_TYPES.UPDATE_SETTINGS,
-        payload: { settings: collectSettings() }
-      });
-      showToast(t('settingsSaved'), 'success');
-      updateAutoSleepTimeoutVisibility();
-    } catch (error) {
-      showToast(t('failedToSaveSettings'), 'error');
-    }
-  });
-});
+function clampTimeout(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return AUTO_SLEEP.DEFAULT_TIMEOUT_MINUTES;
+  return Math.min(AUTO_SLEEP.MAX_TIMEOUT_MINUTES, Math.max(AUTO_SLEEP.MIN_TIMEOUT_MINUTES, parsed));
+}
 
-// Save auto-sleep timeout when changed
-autoSleepTimeout.addEventListener('change', async () => {
-  let timeout = parseInt(autoSleepTimeout.value, 10);
-  if (timeout < 1) timeout = 1;
-  if (timeout > 120) timeout = 120;
-  autoSleepTimeout.value = timeout;
+function updateAutoSleepTimeoutVisibility() {
+  const enabled = toggles.autoSleepEnabled.checked;
+  autoSleepTimeoutContainer.style.opacity = enabled ? '1' : '0.5';
+  autoSleepTimeout.disabled = !enabled;
+}
 
+async function saveSettings() {
   try {
     await sendMessage({
       type: MESSAGE_TYPES.UPDATE_SETTINGS,
       payload: { settings: collectSettings() }
     });
     showToast(t('settingsSaved'), 'success');
-  } catch (error) {
+  } catch {
     showToast(t('failedToSaveSettings'), 'error');
   }
+}
+
+for (const element of Object.values(toggles)) {
+  element.addEventListener('change', async () => {
+    updateAutoSleepTimeoutVisibility();
+    await saveSettings();
+  });
+}
+
+autoSleepTimeout.addEventListener('change', async () => {
+  autoSleepTimeout.value = String(clampTimeout(autoSleepTimeout.value));
+  await saveSettings();
 });
 
-// Add domain to whitelist
-addDomainBtn.addEventListener('click', async () => {
-  const domain = newDomainInput.value.trim();
+// --- Whitelist ---------------------------------------------------------------
 
-  if (!domain) {
-    showToast(t('pleaseEnterDomain'), 'error');
-    return;
-  }
-
-  // Clean domain
-  const cleanDomain = extractDomain(domain);
-
-  if (!cleanDomain) {
-    showToast(t('invalidDomainFormat'), 'error');
-    return;
-  }
-
-  if (currentWhitelist.includes(cleanDomain)) {
-    showToast(t('domainAlreadyInWhitelist'), 'error');
-    return;
-  }
-
+async function loadWhitelist() {
   try {
-    const response = await sendMessage({
-      type: MESSAGE_TYPES.ADD_TO_WHITELIST,
-      payload: { url: 'https://' + cleanDomain }
-    });
-
-    if (response.success) {
-      currentWhitelist.push(cleanDomain);
-      renderWhitelist();
-      newDomainInput.value = '';
-      showToast(t('domainAdded'), 'success');
-    } else {
-      showToast(response.reason || t('failedToAddDomain'), 'error');
-    }
+    const response = await sendMessage({ type: MESSAGE_TYPES.GET_WHITELIST });
+    currentWhitelist = response?.whitelist || [...DEFAULT_WHITELIST];
+    renderWhitelist();
   } catch (error) {
-    showToast(t('failedToAddDomain'), 'error');
+    console.error('[Tab Sleep] Failed to load whitelist:', error);
   }
-});
+}
 
-// Handle Enter key in domain input
-newDomainInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    addDomainBtn.click();
-  }
-});
-
-// Render whitelist
 function renderWhitelist() {
   if (currentWhitelist.length === 0) {
     whitelistList.innerHTML = `<div class="empty-state">${t('noDomainsInWhitelist')}</div>`;
     return;
   }
 
-  whitelistList.innerHTML = currentWhitelist.map(domain => `
+  whitelistList.innerHTML = currentWhitelist
+    .map(
+      (domain) => `
     <div class="whitelist-item">
       <span class="whitelist-domain">${escapeHtml(domain)}</span>
       <button class="btn btn-remove" data-domain="${escapeHtml(domain)}" title="${t('remove')}">
@@ -221,18 +147,52 @@ function renderWhitelist() {
         </svg>
       </button>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
-  // Add remove handlers
-  whitelistList.querySelectorAll('.btn-remove').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const domain = btn.dataset.domain;
-      await removeDomain(domain);
-    });
+  whitelistList.querySelectorAll('.btn-remove').forEach((btn) => {
+    btn.addEventListener('click', () => removeDomain(btn.dataset.domain));
   });
 }
 
-// Remove domain from whitelist
+async function addDomain() {
+  const raw = newDomainInput.value.trim();
+  if (!raw) {
+    showToast(t('pleaseEnterDomain'), 'error');
+    return;
+  }
+
+  const domain = normalizeDomainInput(raw);
+  if (!domain) {
+    showToast(t('invalidDomainFormat'), 'error');
+    return;
+  }
+
+  if (currentWhitelist.includes(domain)) {
+    showToast(t('domainAlreadyInWhitelist'), 'error');
+    return;
+  }
+
+  try {
+    const response = await sendMessage({
+      type: MESSAGE_TYPES.ADD_TO_WHITELIST,
+      payload: { url: domain }
+    });
+
+    if (response?.success) {
+      currentWhitelist.push(domain);
+      renderWhitelist();
+      newDomainInput.value = '';
+      showToast(t('domainAdded'), 'success');
+    } else {
+      showToast(t('failedToAddDomain'), 'error');
+    }
+  } catch {
+    showToast(t('failedToAddDomain'), 'error');
+  }
+}
+
 async function removeDomain(domain) {
   try {
     const response = await sendMessage({
@@ -240,79 +200,55 @@ async function removeDomain(domain) {
       payload: { domain }
     });
 
-    if (response.success) {
-      currentWhitelist = currentWhitelist.filter(d => d !== domain);
+    if (response?.success) {
+      currentWhitelist = currentWhitelist.filter((entry) => entry !== domain);
       renderWhitelist();
       showToast(t('domainRemoved'), 'success');
     } else {
       showToast(t('failedToRemoveDomain'), 'error');
     }
-  } catch (error) {
+  } catch {
     showToast(t('failedToRemoveDomain'), 'error');
   }
 }
 
-// Reset statistics
-resetStatsBtn.addEventListener('click', async () => {
-  if (!confirm(t('confirmResetStats'))) {
-    return;
+addDomainBtn.addEventListener('click', addDomain);
+
+newDomainInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') addDomain();
+});
+
+// --- Statistics --------------------------------------------------------------
+
+async function loadStatistics() {
+  try {
+    const response = await sendMessage({ type: MESSAGE_TYPES.GET_STATISTICS });
+    const stats = response?.statistics || {};
+
+    totalSleptEl.textContent = String(stats.totalSlept || 0);
+    totalWokenEl.textContent = String(stats.totalWoken || 0);
+  } catch (error) {
+    console.error('[Tab Sleep] Failed to load statistics:', error);
   }
+}
+
+resetStatsBtn.addEventListener('click', async () => {
+  if (!window.confirm(t('confirmResetStats'))) return;
 
   try {
-    // NOTE: reset the dedicated statistics key - NOT UPDATE_SETTINGS, which
-    // would overwrite the whole settings object with defaults.
+    // Reset the dedicated statistics key — never UPDATE_SETTINGS, which would
+    // overwrite the whole settings object.
     await sendMessage({ type: MESSAGE_TYPES.RESET_STATISTICS });
-
     totalSleptEl.textContent = '0';
     totalWokenEl.textContent = '0';
     showToast(t('statisticsReset'), 'success');
-  } catch (error) {
+  } catch {
     showToast(t('failedToResetStatistics'), 'error');
   }
 });
 
-// Helper: Send message to background
+// --- Helpers -----------------------------------------------------------------
+
 function sendMessage(message) {
   return chrome.runtime.sendMessage(message);
-}
-
-// Helper: Extract domain from URL or string
-function extractDomain(input) {
-  // Remove protocol if present
-  let domain = input.replace(/^https?:\/\//, '');
-  // Remove path and query string
-  domain = domain.split('/')[0];
-  // Remove port
-  domain = domain.split(':')[0];
-  // Remove www prefix (optional, keep for now)
-  return domain.toLowerCase();
-}
-
-// Helper: Escape HTML
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Helper: Show toast notification
-function showToast(message, type = 'info') {
-  const existingToast = document.querySelector('.toast');
-  if (existingToast) {
-    existingToast.remove();
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  // Trigger show
-  setTimeout(() => toast.classList.add('show'), 10);
-
-  // Hide after 3 seconds
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
 }

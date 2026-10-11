@@ -78,8 +78,13 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* View Tabs */
@@ -356,6 +361,10 @@ body {
 
 .toast.error {
   background: #d93025;
+}
+
+.toast.success {
+  background: #188038;
 }
 
 /* Scrollbar */

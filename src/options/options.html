@@ -1,171 +1,217 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tab Sleep Tool - Settings</title>
-  <link rel="stylesheet" href="options.css">
-</head>
-<body>
-  <div class="options-container">
-    <header class="header">
-      <h1>
-        <!-- Lucide Moon icon -->
-        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-        </svg>
-        <span data-i18n="settingsTitle">Tab Sleep Tool Settings</span>
-      </h1>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tab Sleep Tool - Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="options-container">
+      <header class="header">
+        <h1>
+          <!-- Lucide Moon icon -->
+          <svg
+            class="icon"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+          </svg>
+          <span data-i18n="settingsTitle">Tab Sleep Tool Settings</span>
+        </h1>
+      </header>
 
-    <main class="main-content">
-      <!-- General Settings -->
-      <section class="settings-section">
-        <h2 data-i18n="generalSettings">General Settings</h2>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="excludePinned" data-i18n="excludePinned">Exclude pinned tabs</label>
-            <p class="setting-description" data-i18n="excludePinnedDesc">Pinned tabs will never be put to sleep</p>
+      <main class="main-content">
+        <!-- General Settings -->
+        <section class="settings-section">
+          <h2 data-i18n="generalSettings">General Settings</h2>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="excludePinned" data-i18n="excludePinned">Exclude pinned tabs</label>
+              <p class="setting-description" data-i18n="excludePinnedDesc">Pinned tabs will never be put to sleep</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="excludePinned" checked />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="excludePinned" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="excludeAudible" data-i18n="excludeAudible">Exclude tabs playing audio</label>
-            <p class="setting-description" data-i18n="excludeAudibleDesc">Tabs that are currently playing audio won't be put to sleep</p>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="excludeAudible" data-i18n="excludeAudible">Exclude tabs playing audio</label>
+              <p class="setting-description" data-i18n="excludeAudibleDesc">
+                Tabs that are currently playing audio won't be put to sleep
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="excludeAudible" checked />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="excludeAudible" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="showBadge" data-i18n="showBadge">Show badge counter</label>
-            <p class="setting-description" data-i18n="showBadgeDesc">Display the number of sleeping tabs on the extension icon</p>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="showBadge" data-i18n="showBadge">Show badge counter</label>
+              <p class="setting-description" data-i18n="showBadgeDesc">
+                Display the number of sleeping tabs on the extension icon
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="showBadge" checked />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="showBadge" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-      </section>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="confirmSleepAll" data-i18n="confirmSleepAll">Confirm before sleeping all other tabs</label>
+              <p class="setting-description" data-i18n="confirmSleepAllDesc">
+                Ask for confirmation before the batch sleep runs
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="confirmSleepAll" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </section>
 
-      <!-- State Preservation -->
-      <section class="settings-section">
-        <h2 data-i18n="statePreservation">State Preservation</h2>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="preserveScroll" data-i18n="preserveScroll">Save scroll position</label>
-            <p class="setting-description" data-i18n="preserveScrollDesc">Remember scroll position when tab is woken up</p>
+        <!-- State Preservation -->
+        <section class="settings-section">
+          <h2 data-i18n="statePreservation">State Preservation</h2>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="preserveScroll" data-i18n="preserveScroll">Save scroll position</label>
+              <p class="setting-description" data-i18n="preserveScrollDesc">
+                Remember scroll position when tab is woken up
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="preserveScroll" checked />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="preserveScroll" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="preserveForm" data-i18n="preserveForm">Save form data</label>
-            <p class="setting-description" data-i18n="preserveFormDesc">Remember form inputs (except passwords) when tab is woken up</p>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="preserveForm" data-i18n="preserveForm">Save form data</label>
+              <p class="setting-description" data-i18n="preserveFormDesc">
+                Remember form inputs (except passwords) when tab is woken up
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="preserveForm" checked />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="preserveForm" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-      </section>
+        </section>
 
-      <!-- Auto Sleep -->
-      <section class="settings-section">
-        <h2 data-i18n="autoSleepTitle">Auto Sleep</h2>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="autoSleepEnabled" data-i18n="autoSleepEnabled">Enable auto sleep</label>
-            <p class="setting-description" data-i18n="autoSleepEnabledDesc">Automatically sleep tabs after a period of inactivity</p>
+        <!-- Auto Sleep -->
+        <section class="settings-section">
+          <h2 data-i18n="autoSleepTitle">Auto Sleep</h2>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="autoSleepEnabled" data-i18n="autoSleepEnabled">Enable auto sleep</label>
+              <p class="setting-description" data-i18n="autoSleepEnabledDesc">
+                Automatically sleep tabs after a period of inactivity
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="autoSleepEnabled" />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="autoSleepEnabled">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="setting-item" id="autoSleepTimeoutContainer">
-          <div class="setting-info">
-            <label for="autoSleepTimeout" data-i18n="autoSleepTimeout">Sleep after (minutes)</label>
-            <p class="setting-description" data-i18n="autoSleepTimeoutDesc">Tabs will be slept after being inactive for this duration</p>
+          <div class="setting-item" id="autoSleepTimeoutContainer">
+            <div class="setting-info">
+              <label for="autoSleepTimeout" data-i18n="autoSleepTimeout">Sleep after (minutes)</label>
+              <p class="setting-description" data-i18n="autoSleepTimeoutDesc">
+                Tabs will be slept after being inactive for this duration
+              </p>
+            </div>
+            <input type="number" id="autoSleepTimeout" min="1" max="120" value="30" class="number-input" />
           </div>
-          <input type="number" id="autoSleepTimeout" min="1" max="120" value="30" class="number-input">
-        </div>
-      </section>
+        </section>
 
-      <!-- Startup Suspend -->
-      <section class="settings-section">
-        <h2 data-i18n="startupSuspendTitle">Startup Suspend</h2>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="startupSuspendEnabled" data-i18n="startupSuspendEnabled">Suspend restored tabs at startup</label>
-            <p class="setting-description" data-i18n="startupSuspendEnabledDesc">Tabs restored at browser startup stay unloaded and load only when clicked, keeping memory low when the browser reopens many tabs</p>
+        <!-- Startup Suspend -->
+        <section class="settings-section">
+          <h2 data-i18n="startupSuspendTitle">Startup Suspend</h2>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="startupSuspendEnabled" data-i18n="startupSuspendEnabled"
+                >Suspend restored tabs at startup</label
+              >
+              <p class="setting-description" data-i18n="startupSuspendEnabledDesc">
+                Tabs restored at browser startup stay unloaded and load only when clicked, keeping memory low when the
+                browser reopens many tabs
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="startupSuspendEnabled" checked />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="startupSuspendEnabled" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="setting-item">
-          <div class="setting-info">
-            <label for="startupIncludePinned" data-i18n="startupIncludePinned">Include pinned tabs</label>
-            <p class="setting-description" data-i18n="startupIncludePinnedDesc">Pinned tabs are also kept unloaded at startup (default: off)</p>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="startupIncludePinned" data-i18n="startupIncludePinned">Include pinned tabs</label>
+              <p class="setting-description" data-i18n="startupIncludePinnedDesc">
+                Pinned tabs are also kept unloaded at startup (default: off)
+              </p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="startupIncludePinned" />
+              <span class="slider"></span>
+            </label>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="startupIncludePinned">
-            <span class="slider"></span>
-          </label>
-        </div>
-      </section>
+        </section>
 
-      <!-- Whitelist -->
-      <section class="settings-section">
-        <h2 data-i18n="whitelistTitle">Whitelisted Domains</h2>
-        <p class="section-description" data-i18n="whitelistDesc">
-          These domains will never be put to sleep. Add domains that you want to keep active at all times.
-        </p>
+        <!-- Whitelist -->
+        <section class="settings-section">
+          <h2 data-i18n="whitelistTitle">Whitelisted Domains</h2>
+          <p class="section-description" data-i18n="whitelistDesc">
+            These domains will never be put to sleep. Add domains that you want to keep active at all times.
+          </p>
 
-        <div class="whitelist-add">
-          <input type="text" id="newDomain" data-i18n-placeholder="domainPlaceholder" placeholder="e.g., example.com" />
-          <button id="addDomain" class="btn btn-primary" data-i18n="addDomain">Add Domain</button>
-        </div>
-
-        <div class="whitelist-list" id="whitelistList">
-          <!-- Whitelist items will be populated here -->
-        </div>
-      </section>
-
-      <!-- Statistics -->
-      <section class="settings-section">
-        <h2 data-i18n="statistics">Statistics</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value" id="totalDiscarded">0</div>
-            <div class="stat-label" data-i18n="totalSlept">Total Tabs Slept</div>
+          <div class="whitelist-add">
+            <input
+              type="text"
+              id="newDomain"
+              data-i18n-placeholder="domainPlaceholder"
+              placeholder="e.g., example.com"
+            />
+            <button id="addDomain" class="btn btn-primary" data-i18n="addDomain">Add Domain</button>
           </div>
-          <div class="stat-card">
-            <div class="stat-value" id="totalWoken">0</div>
-            <div class="stat-label" data-i18n="totalWoken">Total Tabs Woken</div>
+
+          <div class="whitelist-list" id="whitelistList">
+            <!-- Whitelist items will be populated here -->
           </div>
-        </div>
-        <button id="resetStats" class="btn btn-secondary" data-i18n="resetStats">Reset Statistics</button>
-      </section>
-    </main>
+        </section>
 
-    <footer class="footer">
-      <p>Tab Sleep Tool v1.0.0</p>
-      <p class="footer-note" data-i18n="footerNote">Click on a sleeping tab to wake it up.</p>
-    </footer>
-  </div>
+        <!-- Statistics -->
+        <section class="settings-section">
+          <h2 data-i18n="statistics">Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="totalSlept">0</div>
+              <div class="stat-label" data-i18n="totalSlept">Total Tabs Slept</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="totalWoken">0</div>
+              <div class="stat-label" data-i18n="totalWoken">Total Tabs Woken</div>
+            </div>
+          </div>
+          <button id="resetStats" class="btn btn-secondary" data-i18n="resetStats">Reset Statistics</button>
+        </section>
+      </main>
 
-  <script src="options.js" type="module"></script>
-</body>
+      <footer class="footer">
+        <p><span data-i18n="extName">Tab Sleep Tool</span> <span id="versionText"></span></p>
+        <p class="footer-note" data-i18n="footerNote">Click on a sleeping tab to wake it up.</p>
+      </footer>
+    </div>
+
+    <script src="options.js" type="module"></script>
+  </body>
 </html>

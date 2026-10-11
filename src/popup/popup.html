@@ -1,62 +1,91 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tab Sleep Tool</title>
-  <link rel="stylesheet" href="popup.css">
-</head>
-<body>
-  <div class="popup-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-left">
-        <span class="brand" data-i18n="extName">Tab Sleep Tool</span>
-      </div>
-      <div class="header-actions">
-        <!-- 刷新 -->
-        <button id="refreshList" class="icon-btn" data-i18n-title="refresh">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-            <path d="M21 3v5h-5"/>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-            <path d="M3 16v5h5"/>
-          </svg>
-        </button>
-        <!-- 休眠其他标签 -->
-        <button id="sleepOtherTabs" class="icon-btn" data-i18n-title="sleepOtherTabs">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-          </svg>
-        </button>
-        <!-- 设置 -->
-        <button id="openOptions" class="icon-btn" data-i18n-title="settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-        </button>
-      </div>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tab Sleep Tool</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup-container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <span class="brand" data-i18n="extName">Tab Sleep Tool</span>
+        </div>
+        <div class="header-actions">
+          <!-- 刷新 -->
+          <button id="refreshList" class="icon-btn" data-i18n-title="refresh">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M3 16v5h5" />
+            </svg>
+          </button>
+          <!-- 休眠其他标签 -->
+          <button id="sleepOtherTabs" class="icon-btn" data-i18n-title="sleepOtherTabs">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </button>
+          <!-- 设置 -->
+          <button id="openOptions" class="icon-btn" data-i18n-title="settings">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"
+              />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+        </div>
+      </header>
 
-    <!-- View Tabs -->
-    <div class="view-tabs">
-      <button class="view-tab active" data-view="active">
-        <span class="tab-label" data-i18n="active">Active</span>
-        <span class="tab-count" id="activeCount">0</span>
-      </button>
-      <button class="view-tab" data-view="sleeping">
-        <span class="tab-label" data-i18n="sleeping">Sleeping</span>
-        <span class="tab-count" id="sleepingCount">0</span>
-      </button>
+      <!-- View Tabs -->
+      <div class="view-tabs">
+        <button class="view-tab active" data-view="active">
+          <span class="tab-label" data-i18n="active">Active</span>
+          <span class="tab-count" id="activeCount">0</span>
+        </button>
+        <button class="view-tab" data-view="sleeping">
+          <span class="tab-label" data-i18n="sleeping">Sleeping</span>
+          <span class="tab-count" id="sleepingCount">0</span>
+        </button>
+      </div>
+
+      <!-- Tabs List -->
+      <div class="tabs-list" id="tabsList">
+        <div class="loading" data-i18n="loading">Loading...</div>
+      </div>
     </div>
 
-    <!-- Tabs List -->
-    <div class="tabs-list" id="tabsList">
-      <div class="loading" data-i18n="loading">Loading...</div>
-    </div>
-  </div>
-
-  <script src="popup.js" type="module"></script>
-</body>
+    <script src="popup.js" type="module"></script>
+  </body>
 </html>

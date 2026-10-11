@@ -7,10 +7,6 @@
     "message": "A Chrome extension to hibernate inactive tabs to save memory and CPU resources",
     "description": "Extension description"
   },
-  "sleepCurrentTab": {
-    "message": "Sleep Current Tab",
-    "description": "Button text for sleeping current tab"
-  },
   "sleepOtherTabs": {
     "message": "Sleep All Other Tabs",
     "description": "Button text for sleeping all other tabs"
@@ -277,10 +273,6 @@
     "message": "Tab unlocked",
     "description": "Toast message when tab is unlocked"
   },
-  "tabIsLocked": {
-    "message": "Tab is locked",
-    "description": "Reason when tab cannot be slept because it's locked"
-  },
   "failedToLockTab": {
     "message": "Failed to lock/unlock tab",
     "description": "Error message when locking/unlocking fails"
@@ -332,5 +324,53 @@
   "commandSleepOtherTabs": {
     "message": "Sleep all other tabs",
     "description": "Keyboard shortcut description"
+  },
+  "confirmSleepAll": {
+    "message": "Confirm before sleeping all other tabs",
+    "description": "Setting label"
+  },
+  "confirmSleepAllDesc": {
+    "message": "Ask for confirmation before the batch sleep runs",
+    "description": "Setting description"
+  },
+  "confirmSleepAllPrompt": {
+    "message": "Sleep all tabs except the current one?",
+    "description": "Confirmation dialog before a batch sleep"
+  },
+  "failedToLoadSettings": {
+    "message": "Failed to load settings",
+    "description": "Error message"
+  },
+  "reasonAlreadySleeping": {
+    "message": "Tab is already sleeping",
+    "description": "Reason a tab cannot be slept"
+  },
+  "reasonLocked": {
+    "message": "Tab is locked",
+    "description": "Reason a tab cannot be slept"
+  },
+  "reasonEmptyTab": {
+    "message": "Empty or new tab page",
+    "description": "Reason a tab cannot be slept"
+  },
+  "reasonInternalPage": {
+    "message": "Browser internal pages cannot be slept",
+    "description": "Reason a tab cannot be slept"
+  },
+  "reasonPinnedTab": {
+    "message": "Pinned tabs are excluded by your settings",
+    "description": "Reason a tab cannot be slept"
+  },
+  "reasonAudibleTab": {
+    "message": "Tab is playing audio",
+    "description": "Reason a tab cannot be slept"
+  },
+  "reasonWhitelisted": {
+    "message": "Domain is on the whitelist",
+    "description": "Reason a tab cannot be slept"
+  },
+  "reasonBatchRunning": {
+    "message": "A batch sleep is already running",
+    "description": "Reason a batch action was refused"
   }
 }
