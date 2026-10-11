@@ -6,7 +6,7 @@
 ```
        覆盖范围 / 成本
   高 ┌────────────────────────────────────────────┐
-     │ 单元测试 (node:test)                        │  115 项断言
+     │ 单元测试 (node:test)                        │  120 项断言
      │ tests/unit/**                               │  零依赖，毫秒级
      ├────────────────────────────────────────────┤
      │ 集成测试 (node:test + chrome mock)          │  驱动真实 Service Worker
@@ -22,7 +22,7 @@
 ## 1. 一条命令
 
 ```bash
-npm test          # node --test  —— 全部 115 项断言
+npm test          # node --test  —— 全部 120 项断言
 npm run check     # 格式 + lint + 一致性校验 + 测试
 ```
 

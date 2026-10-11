@@ -2,7 +2,6 @@
 
 [English](README.en.md) ｜ 中文（当前）
 
-[![CI](https://github.com/myplugin/chrome-tab-sleep/actions/workflows/ci.yml/badge.svg)](https://github.com/myplugin/chrome-tab-sleep/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-informational.svg)](src/manifest.json)
 
@@ -138,7 +137,7 @@ git clone <repo> && cd tab-sleep
 
 ```bash
 npm ci        # 只装 eslint / prettier；测试零依赖
-npm run check # 提交前必跑：格式 + lint + 一致性校验 + 115 项测试
+npm run check # 提交前必跑：格式 + lint + 一致性校验 + 120 项测试
 npm run build # 产出 dist/tab-sleep-v<version>.zip
 ```
 

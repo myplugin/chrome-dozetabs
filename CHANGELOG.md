@@ -41,6 +41,11 @@
   并为该不变量补上独立测试。
 - `handleMessage()` 现在拒绝来自其他扩展的消息（`sender.id` 校验），
   并通过 `sanitizeSettings()` 丢弃设置中的未知键。
+- **残留的休眠状态可能被错误复用**：`sleepingTabs` 此前只在「唤醒时领取」与
+  「标签页关闭」时清理，浏览器被强杀（或休眠后再未被唤醒）留下的条目会持续堆积；
+  而标签页 ID 只在单次浏览器运行内唯一，残留条目可能与新分配的 ID 撞车，把滚动位置
+  与表单内容恢复到无关的页面上。现在会在浏览器启动与扩展安装/更新时清理所有对应
+  标签页已不存在的条目（`pruneSleepingTabs()`）。
 
 ### 变更
 
@@ -68,7 +73,7 @@
 - 新增 **ESLint 10**（flat config）与 **Prettier**，`.editorconfig`、`.gitattributes`、
   `.nvmrc`；`npm run check` 一条命令跑完格式、静态检查、一致性校验与测试。
 - 测试栈从 vitest 迁移到 **Node 内置 `node:test`**，实现零运行时依赖的测试：
-  断言数由 37 增至 **115**，覆盖存储层并发、设置清洗、休眠判定矩阵、
+  断言数由 37 增至 **120**，覆盖存储层并发、设置清洗、休眠判定矩阵、
   消息路由与启动休眠不变量；`tests/helpers/chrome-mock.js` 提供可复用的 chrome API 模拟。
 - 新增 `tool/validate.js`：校验 manifest 引用、多语言 key 对齐、
   消息类型「声明即处理」，并修正了原 i18n 检查脚本的误报

@@ -147,7 +147,7 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | AUD-23 | 无 lint / format 配置                                                                    | 全仓库                                                                                                                                       | ✅ ESLint 10 flat config + Prettier + EditorConfig                             |
 | AUD-24 | 无 CI                                                                                    | 提交 `01df5b6` 移除了 GitHub Actions                                                                                                         | ✅ GitHub Actions（Node 20/22/24 矩阵 + 打包校验 + Release）                   |
 | AUD-25 | 无任何协作治理文件                                                                       | 无 CONTRIBUTING/SECURITY/PRIVACY/CHANGELOG/模板                                                                                              | ✅ 已补齐                                                                      |
-| AUD-26 | 测试质量不足                                                                             | mock 的 `storage.get` 返回**活引用**，导致 `deepEqual(settings, before)` 恒真；`tabs.query` 忽略查询条件；无并发、无设置清洗、无消息路由测试 | ✅ 重建，37 → 115 项断言                                                       |
+| AUD-26 | 测试质量不足                                                                             | mock 的 `storage.get` 返回**活引用**，导致 `deepEqual(settings, before)` 恒真；`tabs.query` 忽略查询条件；无并发、无设置清洗、无消息路由测试 | ✅ 重建，37 → 120 项断言                                                       |
 | AUD-27 | `CLAUDE.md` 是唯一的开发文档                                                             | 面向 AI 的说明同时承担人类开发文档职责                                                                                                       | ✅ 拆为 `AGENTS.md`（AI）+ `docs/DEVELOPMENT.md`（人类），`CLAUDE.md` 仅作指针 |
 
 ### P3 — 建议
@@ -171,7 +171,7 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | -------------- | ------------------------------------ | -------------------------------------------------------------------------- |
 | 代码风格       | 无任何强制                           | ESLint 10 + Prettier + `.editorconfig` + CI 门禁                           |
 | 一致性校验     | 一个自身有误报的 i18n 脚本           | `tool/validate.js`：manifest 引用 / 版本 / 多语言 / 消息协议               |
-| 自动化测试     | vitest（24 项）+ 手写脚手架（13 项） | `node:test`（115 项），**零运行时依赖**                                    |
+| 自动化测试     | vitest（24 项）+ 手写脚手架（13 项） | `node:test`（120 项），**零运行时依赖**                                    |
 | CI             | 无                                   | 三版本矩阵 + 打包结构校验 + 打 tag 自动发版                                |
 | 发布           | 三个互相漂移的打包脚本，两个不可用   | 单一纯 Node 打包器，产物结构有 CI 断言                                     |
 | 协作文档       | 只有一份 AI 说明                     | CONTRIBUTING / SECURITY / PRIVACY / CHANGELOG / AGENTS / 模板 / CODEOWNERS |
@@ -187,7 +187,7 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | 静态检查               | `npm run lint`                          | 0 error（整改前 14 error）                       |
 | 一致性校验             | `npm run validate`                      | 0 error / 0 warning                              |
 | 格式化                 | `npm run format:check`                  | 全部符合                                         |
-| 测试                   | `npm test`                              | 115 通过 / 0 失败                                |
+| 测试                   | `npm test`                              | 120 通过 / 0 失败                                |
 | 打包                   | `npm run build`                         | 40 个条目、49 KB、条目位于根目录                 |
 | 打包产物结构           | `Expand-Archive` 解压比对               | 文件列表与 `src/` 完全一致，`manifest.json` 可读 |
 | 扩展更新不触发启动休眠 | `tests/startup-suspend-reload.test.mjs` | 独立进程验证通过                                 |
@@ -199,7 +199,7 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | `src/` JavaScript 行数 | ~1770                       | 2567（新增 session-store / timers / settings / i18n / dom 等模块与注释） |
 | 最大单文件行数         | 1025（`service-worker.js`） | 330（`popup.js`），入口文件降到 142                                      |
 | `src/` 运行时依赖      | 0                           | 0                                                                        |
-| 测试断言数             | 37                          | 115                                                                      |
+| 测试断言数             | 37                          | 120                                                                      |
 
 **结论：在增加功能（真正的休眠前确认）与文档的同时，最大文件缩小到 1/3，测试覆盖提升 3 倍。**
 

@@ -39,7 +39,7 @@ npm run check
 | 格式       | `npm run format:check` | Prettier 风格是否一致                        |
 | 静态检查   | `npm run lint`         | ESLint 规则（含未使用变量、未定义全局变量）  |
 | 一致性校验 | `npm run validate`     | manifest 引用、多语言 key 对齐、消息协议闭环 |
-| 测试       | `npm test`             | 115 项单元 + 集成断言（`node:test`，零依赖） |
+| 测试       | `npm test`             | 120 项单元 + 集成断言（`node:test`，零依赖） |
 
 单独运行某一项也是可以的，例如 `npm test`、`node tool/validate.js --only i18n`。
 

@@ -2,7 +2,6 @@
 
 [中文](README.md) ｜ English (current)
 
-[![CI](https://github.com/myplugin/chrome-tab-sleep/actions/workflows/ci.yml/badge.svg)](https://github.com/myplugin/chrome-tab-sleep/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-informational.svg)](src/manifest.json)
 
@@ -158,7 +157,7 @@ is in [docs/STARTUP-SUSPEND-TEST.md](docs/STARTUP-SUSPEND-TEST.md) (Chinese).
 
 ```bash
 npm ci        # installs eslint + prettier only; the test suite needs nothing
-npm run check # what CI runs: format + lint + consistency checks + 115 tests
+npm run check # what CI runs: format + lint + consistency checks + 120 tests
 npm run build # produces dist/tab-sleep-v<version>.zip
 ```
 
