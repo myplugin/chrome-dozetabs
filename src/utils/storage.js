@@ -6,17 +6,55 @@ import {
 } from './constants.js';
 
 /**
+ * `chrome.storage.local` access layer.
+ *
+ * Two things matter here:
+ *
+ * 1. **Every read-modify-write is serialised per key.** The batch-sleep path
+ *    processes up to 10 tabs concurrently and each of them bumps the same
+ *    counters/maps. A naive `get` -> mutate -> `set` loses updates; the
+ *    `withStorageLock` queue below makes those operations atomic within the
+ *    service worker.
+ *
+ * 2. **Defaults are merged, never replaced.** `getSettings()` always returns a
+ *    complete object so a newly added setting cannot come back `undefined`.
+ */
+
+/** Serialises read-modify-write sequences per storage key. */
+const keyLocks = new Map();
+
+/**
+ * Run `task` after every previously queued task for `key` has settled.
+ * @param {string} key - storage key the task mutates
+ * @param {() => Promise<*>} task
+ * @returns {Promise<*>} the task result
+ */
+export function withStorageLock(key, task) {
+  const previous = keyLocks.get(key) || Promise.resolve();
+  const run = previous.then(task, task);
+  const tail = run.then(
+    () => undefined,
+    () => undefined
+  );
+  keyLocks.set(key, tail);
+  tail.then(() => {
+    if (keyLocks.get(key) === tail) keyLocks.delete(key);
+  });
+  return run;
+}
+
+/**
  * Get data from chrome.storage.local
- * @param {string|string[]} keys - Storage key(s) to retrieve
+ * @param {string|string[]|null} keys - Storage key(s) to retrieve
  * @returns {Promise<Object>} - Storage data
  */
 export async function getStorage(keys) {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(keys, (result) => {
       if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
+        reject(new Error(chrome.runtime.lastError.message));
       } else {
-        resolve(result);
+        resolve(result || {});
       }
     });
   });
@@ -31,7 +69,7 @@ export async function setStorage(data) {
   return new Promise((resolve, reject) => {
     chrome.storage.local.set(data, () => {
       if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
+        reject(new Error(chrome.runtime.lastError.message));
       } else {
         resolve();
       }
@@ -39,164 +77,136 @@ export async function setStorage(data) {
   });
 }
 
-/**
- * Remove data from chrome.storage.local
- * @param {string|string[]} keys - Storage key(s) to remove
- * @returns {Promise<void>}
- */
-export async function removeStorage(keys) {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.remove(keys, () => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve();
-      }
-    });
-  });
-}
+// ---------------------------------------------------------------------------
+// Whitelist
+// ---------------------------------------------------------------------------
 
-/**
- * Get the whitelist from storage
- * @returns {Promise<string[]>} - Array of whitelisted domains
- */
+/** @returns {Promise<string[]>} whitelisted domain patterns */
 export async function getWhitelist() {
   const result = await getStorage(STORAGE_KEYS.WHITELIST);
-  return result[STORAGE_KEYS.WHITELIST] || DEFAULT_WHITELIST;
+  const stored = result[STORAGE_KEYS.WHITELIST];
+  return Array.isArray(stored) ? stored : [...DEFAULT_WHITELIST];
 }
 
-/**
- * Save the whitelist to storage
- * @param {string[]} whitelist - Array of domains to whitelist
- * @returns {Promise<void>}
- */
+/** @param {string[]} whitelist */
 export async function saveWhitelist(whitelist) {
   await setStorage({ [STORAGE_KEYS.WHITELIST]: whitelist });
 }
 
-/**
- * Get settings from storage
- * @returns {Promise<Object>} - Settings object
- */
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+/** @returns {Promise<Object>} settings merged over the defaults */
 export async function getSettings() {
   const result = await getStorage(STORAGE_KEYS.SETTINGS);
-  return { ...DEFAULT_SETTINGS, ...result[STORAGE_KEYS.SETTINGS] };
+  return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.SETTINGS] || {}) };
 }
 
-/**
- * Save settings to storage
- * @param {Object} settings - Settings object to save
- * @returns {Promise<void>}
- */
+/** @param {Object} settings - full settings object to persist */
 export async function saveSettings(settings) {
   await setStorage({ [STORAGE_KEYS.SETTINGS]: settings });
 }
 
-/**
- * Get sleeping tabs data from storage
- * @returns {Promise<Object>} - Sleeping tabs data keyed by tab ID
- */
+// ---------------------------------------------------------------------------
+// Sleeping tab state (scroll position + form data captured before discard)
+// ---------------------------------------------------------------------------
+
+/** @returns {Promise<Object<number, Object>>} state keyed by tab id */
 export async function getSleepingTabs() {
   const result = await getStorage(STORAGE_KEYS.SLEEPING_TABS);
   return result[STORAGE_KEYS.SLEEPING_TABS] || {};
 }
 
 /**
- * Save sleeping tab data
- * @param {number} tabId - Tab ID
- * @param {Object} data - Tab state data
- * @returns {Promise<void>}
+ * @param {number} tabId
+ * @param {Object} data - captured tab state
  */
 export async function saveSleepingTab(tabId, data) {
-  const sleepingTabs = await getSleepingTabs();
-  sleepingTabs[tabId] = data;
-  await setStorage({ [STORAGE_KEYS.SLEEPING_TABS]: sleepingTabs });
+  await withStorageLock(STORAGE_KEYS.SLEEPING_TABS, async () => {
+    const sleepingTabs = await getSleepingTabs();
+    sleepingTabs[tabId] = data;
+    await setStorage({ [STORAGE_KEYS.SLEEPING_TABS]: sleepingTabs });
+  });
 }
 
-/**
- * Remove sleeping tab data
- * @param {number} tabId - Tab ID to remove
- * @returns {Promise<void>}
- */
+/** @param {number} tabId */
 export async function removeSleepingTab(tabId) {
-  const sleepingTabs = await getSleepingTabs();
-  delete sleepingTabs[tabId];
-  await setStorage({ [STORAGE_KEYS.SLEEPING_TABS]: sleepingTabs });
+  await withStorageLock(STORAGE_KEYS.SLEEPING_TABS, async () => {
+    const sleepingTabs = await getSleepingTabs();
+    if (!(tabId in sleepingTabs)) return;
+    delete sleepingTabs[tabId];
+    await setStorage({ [STORAGE_KEYS.SLEEPING_TABS]: sleepingTabs });
+  });
 }
 
-/**
- * Get statistics from storage
- * @returns {Promise<Object>} - Statistics object
- */
+// ---------------------------------------------------------------------------
+// Statistics
+// ---------------------------------------------------------------------------
+
+/** @returns {Promise<Object>} statistics merged over the defaults */
 export async function getStatistics() {
   const result = await getStorage(STORAGE_KEYS.STATISTICS);
-  return { ...DEFAULT_STATISTICS, ...result[STORAGE_KEYS.STATISTICS] };
+  return { ...DEFAULT_STATISTICS, ...(result[STORAGE_KEYS.STATISTICS] || {}) };
 }
 
-/**
- * Increment the sleep counter
- * @param {number} count - Number to increment by
- * @returns {Promise<void>}
- */
+/** @param {number} [count] - how many sleeps to add */
 export async function incrementSleepCount(count = 1) {
-  const stats = await getStatistics();
-  stats.totalSlept += count;
-  await setStorage({ [STORAGE_KEYS.STATISTICS]: stats });
+  if (count <= 0) return;
+  await withStorageLock(STORAGE_KEYS.STATISTICS, async () => {
+    const stats = await getStatistics();
+    stats.totalSlept += count;
+    await setStorage({ [STORAGE_KEYS.STATISTICS]: stats });
+  });
 }
 
-/**
- * Increment the wake counter
- * @param {number} count - Number to increment by
- * @returns {Promise<void>}
- */
+/** @param {number} [count] - how many wakes to add */
 export async function incrementWakeCount(count = 1) {
-  const stats = await getStatistics();
-  stats.totalWoken += count;
-  await setStorage({ [STORAGE_KEYS.STATISTICS]: stats });
+  if (count <= 0) return;
+  await withStorageLock(STORAGE_KEYS.STATISTICS, async () => {
+    const stats = await getStatistics();
+    stats.totalWoken += count;
+    await setStorage({ [STORAGE_KEYS.STATISTICS]: stats });
+  });
 }
 
-/**
- * Reset statistics to their defaults
- * @returns {Promise<void>}
- */
 export async function resetStatistics() {
-  await setStorage({ [STORAGE_KEYS.STATISTICS]: DEFAULT_STATISTICS });
+  await setStorage({
+    [STORAGE_KEYS.STATISTICS]: { ...DEFAULT_STATISTICS, lastReset: Date.now() }
+  });
 }
 
-/**
- * Get locked tabs from storage
- * @returns {Promise<Set<number>>} - Set of locked tab IDs
- */
+// ---------------------------------------------------------------------------
+// Locked tabs (a lock survives batch operations)
+// ---------------------------------------------------------------------------
+
+/** @returns {Promise<Set<number>>} */
 export async function getLockedTabs() {
   const result = await getStorage(STORAGE_KEYS.LOCKED_TABS);
-  return new Set(result[STORAGE_KEYS.LOCKED_TABS] || []);
+  const stored = result[STORAGE_KEYS.LOCKED_TABS];
+  return new Set(Array.isArray(stored) ? stored : []);
 }
 
-/**
- * Lock a tab
- * @param {number} tabId - Tab ID to lock
- * @returns {Promise<void>}
- */
+/** @param {number} tabId */
 export async function lockTab(tabId) {
-  const lockedTabs = await getLockedTabs();
-  lockedTabs.add(tabId);
-  await setStorage({ [STORAGE_KEYS.LOCKED_TABS]: Array.from(lockedTabs) });
+  await withStorageLock(STORAGE_KEYS.LOCKED_TABS, async () => {
+    const lockedTabs = await getLockedTabs();
+    lockedTabs.add(tabId);
+    await setStorage({ [STORAGE_KEYS.LOCKED_TABS]: Array.from(lockedTabs) });
+  });
 }
 
-/**
- * Unlock a tab
- * @param {number} tabId - Tab ID to unlock
- * @returns {Promise<void>}
- */
+/** @param {number} tabId */
 export async function unlockTab(tabId) {
-  const lockedTabs = await getLockedTabs();
-  lockedTabs.delete(tabId);
-  await setStorage({ [STORAGE_KEYS.LOCKED_TABS]: Array.from(lockedTabs) });
+  await withStorageLock(STORAGE_KEYS.LOCKED_TABS, async () => {
+    const lockedTabs = await getLockedTabs();
+    if (!lockedTabs.delete(tabId)) return;
+    await setStorage({ [STORAGE_KEYS.LOCKED_TABS]: Array.from(lockedTabs) });
+  });
 }
 
 /**
- * Check if a tab is locked
- * @param {number} tabId - Tab ID to check
+ * @param {number} tabId
  * @returns {Promise<boolean>}
  */
 export async function isTabLocked(tabId) {
@@ -204,10 +214,11 @@ export async function isTabLocked(tabId) {
   return lockedTabs.has(tabId);
 }
 
-/**
- * Initialize storage with default values if not exists
- * @returns {Promise<void>}
- */
+// ---------------------------------------------------------------------------
+// Bootstrap
+// ---------------------------------------------------------------------------
+
+/** Write defaults for any key that is still missing. */
 export async function initializeStorage() {
   const existingData = await getStorage([
     STORAGE_KEYS.WHITELIST,
@@ -219,23 +230,19 @@ export async function initializeStorage() {
 
   const toSet = {};
 
-  if (!existingData[STORAGE_KEYS.WHITELIST]) {
-    toSet[STORAGE_KEYS.WHITELIST] = DEFAULT_WHITELIST;
+  if (!Array.isArray(existingData[STORAGE_KEYS.WHITELIST])) {
+    toSet[STORAGE_KEYS.WHITELIST] = [...DEFAULT_WHITELIST];
   }
-
   if (!existingData[STORAGE_KEYS.SETTINGS]) {
-    toSet[STORAGE_KEYS.SETTINGS] = DEFAULT_SETTINGS;
+    toSet[STORAGE_KEYS.SETTINGS] = { ...DEFAULT_SETTINGS };
   }
-
   if (!existingData[STORAGE_KEYS.STATISTICS]) {
-    toSet[STORAGE_KEYS.STATISTICS] = DEFAULT_STATISTICS;
+    toSet[STORAGE_KEYS.STATISTICS] = { ...DEFAULT_STATISTICS };
   }
-
   if (!existingData[STORAGE_KEYS.SLEEPING_TABS]) {
     toSet[STORAGE_KEYS.SLEEPING_TABS] = {};
   }
-
-  if (!existingData[STORAGE_KEYS.LOCKED_TABS]) {
+  if (!Array.isArray(existingData[STORAGE_KEYS.LOCKED_TABS])) {
     toSet[STORAGE_KEYS.LOCKED_TABS] = [];
   }
 

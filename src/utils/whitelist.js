@@ -1,157 +1,181 @@
-import { getWhitelist, saveWhitelist } from './storage.js';
+import { CHROME_INTERNAL_SCHEMES, STORAGE_KEYS } from './constants.js';
+import { getWhitelist, saveWhitelist, withStorageLock } from './storage.js';
 
 /**
- * Extract domain from URL
- * @param {string} url - URL to extract domain from
- * @returns {string} - Domain name
+ * Domain-matching rules shared by the service worker and both UI surfaces.
+ *
+ * This module is the *only* place that decides whether a URL is whitelisted,
+ * browser-internal or an empty/new-tab page. The popup, the options page and
+ * the sleep paths all call into it — previously each of them carried its own
+ * copy of the rules and they had already started to diverge.
+ */
+
+/** URLs that are blank or browser-generated and therefore meaningless to sleep. */
+const EMPTY_TAB_URLS = [
+  'chrome://newtab/',
+  'chrome://blank',
+  'about:blank',
+  'about:newtab',
+  'edge://newtab/',
+  'edge://blank',
+  'chrome-search://local-ntp/local-ntp.html'
+];
+
+const EMPTY_TAB_TITLES = ['new tab', 'blank page', 'about:blank'];
+
+/**
+ * Extract the hostname from a URL.
+ * @param {string} url
+ * @returns {string} hostname, or '' when the input is not a URL
  */
 export function extractDomain(url) {
   try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
+    return new URL(url).hostname;
   } catch {
     return '';
   }
 }
 
 /**
- * Check if a domain matches a whitelist pattern
- * Supports exact match and subdomain wildcard (*.example.com)
- * @param {string} domain - Domain to check
- * @param {string} pattern - Whitelist pattern
- * @returns {boolean} - True if matches
+ * Turn free-form user input ("https://Example.com/path", "example.com:8080",
+ * "*.example.com") into the canonical pattern stored in the whitelist.
+ * @param {string} input
+ * @returns {string} normalised domain pattern, or '' when unusable
+ */
+export function normalizeDomainInput(input) {
+  if (typeof input !== 'string') return '';
+
+  const trimmed = input.trim().toLowerCase();
+  if (!trimmed) return '';
+
+  // Wildcards are meaningful to us but not to URL(); keep the prefix.
+  if (trimmed.startsWith('*.')) {
+    return normalizeDomainInput(trimmed.slice(2))
+      ? `*.${normalizeDomainInput(trimmed.slice(2))}`
+      : '';
+  }
+
+  const withoutScheme = trimmed.replace(/^[a-z][a-z0-9+.-]*:\/\//, '');
+  const hostAndPort = withoutScheme.split('/')[0].split('?')[0].split('#')[0];
+  const host = hostAndPort.split('@').pop().split(':')[0];
+
+  // Single-label hosts are allowed on purpose: `localhost` and intranet
+  // hostnames are common whitelist entries.
+  if (!host) return '';
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/.test(host)) return '';
+
+  return host;
+}
+
+/**
+ * Check whether a domain matches one whitelist pattern.
+ * Supports exact match and the `*.example.com` wildcard form.
+ * @param {string} domain
+ * @param {string} pattern
+ * @returns {boolean}
  */
 export function matchesPattern(domain, pattern) {
   if (!domain || !pattern) return false;
 
-  // Exact match
-  if (domain === pattern) return true;
-
-  // Wildcard subdomain match (e.g., *.example.com)
   if (pattern.startsWith('*.')) {
     const baseDomain = pattern.slice(2);
     return domain === baseDomain || domain.endsWith('.' + baseDomain);
   }
 
-  // Check if pattern is a suffix of domain (e.g., example.com matches sub.example.com)
-  return domain.endsWith('.' + pattern);
+  // A bare pattern also covers its subdomains: `example.com` matches
+  // `mail.example.com` but not `notexample.com`.
+  return domain === pattern || domain.endsWith('.' + pattern);
 }
 
 /**
- * Check if a URL is in the whitelist
- * @param {string} url - URL to check
- * @returns {Promise<boolean>} - True if whitelisted
+ * @param {string} domain
+ * @param {string[]} patterns
+ * @returns {boolean}
+ */
+export function matchesAnyPattern(domain, patterns) {
+  if (!domain || !Array.isArray(patterns)) return false;
+  return patterns.some((pattern) => matchesPattern(domain, pattern));
+}
+
+/**
+ * @param {string} url
+ * @returns {Promise<boolean>} true when the URL must never be slept
  */
 export async function isWhitelisted(url) {
   const domain = extractDomain(url);
   if (!domain) return false;
-
-  const whitelist = await getWhitelist();
-  return whitelist.some(pattern => matchesPattern(domain, pattern));
+  return matchesAnyPattern(domain, await getWhitelist());
 }
 
 /**
- * Add a domain to the whitelist
- * @param {string} domain - Domain to add
- * @returns {Promise<boolean>} - True if added, false if already exists
+ * Add a domain to the whitelist.
+ * @param {string} input - domain or URL
+ * @returns {Promise<{added: boolean, domain: string}>}
  */
-export async function addToWhitelist(domain) {
-  // Clean up the domain
-  const cleanDomain = extractDomain('https://' + domain.replace(/^https?:\/\//, ''));
+export async function addToWhitelist(input) {
+  const domain = normalizeDomainInput(input);
+  if (!domain) return { added: false, domain: '' };
 
-  if (!cleanDomain) return false;
-
-  const whitelist = await getWhitelist();
-
-  // Check if already exists
-  if (whitelist.includes(cleanDomain)) {
-    return false;
-  }
-
-  whitelist.push(cleanDomain);
-  await saveWhitelist(whitelist);
-  return true;
+  return withStorageLock(STORAGE_KEYS.WHITELIST, async () => {
+    const whitelist = await getWhitelist();
+    if (whitelist.includes(domain)) return { added: false, domain };
+    whitelist.push(domain);
+    await saveWhitelist(whitelist);
+    return { added: true, domain };
+  });
 }
 
 /**
- * Remove a domain from the whitelist
- * @param {string} domain - Domain to remove
- * @returns {Promise<boolean>} - True if removed
+ * Remove a domain from the whitelist.
+ * @param {string} input - domain or URL
+ * @returns {Promise<{removed: boolean, domain: string}>}
  */
-export async function removeFromWhitelist(domain) {
-  const whitelist = await getWhitelist();
-  const index = whitelist.indexOf(domain);
+export async function removeFromWhitelist(input) {
+  const domain = normalizeDomainInput(input);
+  if (!domain) return { removed: false, domain: '' };
 
-  if (index === -1) return false;
-
-  whitelist.splice(index, 1);
-  await saveWhitelist(whitelist);
-  return true;
+  return withStorageLock(STORAGE_KEYS.WHITELIST, async () => {
+    const whitelist = await getWhitelist();
+    const index = whitelist.indexOf(domain);
+    if (index === -1) return { removed: false, domain };
+    whitelist.splice(index, 1);
+    await saveWhitelist(whitelist);
+    return { removed: true, domain };
+  });
 }
 
 /**
- * Check if URL is a Chrome internal page
- * @param {string} url - URL to check
- * @returns {boolean} - True if internal page
+ * Check whether a URL belongs to the browser itself.
+ * @param {string} url
+ * @returns {boolean} true for chrome://, edge://, about:, devtools://, ...
  */
 export function isChromeInternalPage(url) {
   if (!url) return true;
-
-  const internalSchemes = [
-    'chrome://',
-    'chrome-extension://',
-    'edge://',
-    'about:',
-    'chrome-search://',
-    'devtools://'
-  ];
-
-  return internalSchemes.some(scheme => url.startsWith(scheme));
+  return CHROME_INTERNAL_SCHEMES.some((scheme) => url.startsWith(scheme));
 }
 
 /**
- * Check if URL is an empty/new tab page that should be excluded
- * These are tabs that are "blank" and shouldn't be counted or put to sleep
- * @param {string} url - URL to check
- * @param {string} title - Tab title (optional)
- * @returns {boolean} - True if empty/new tab page
+ * Check whether a tab holds no real content (fresh tab, blank page, internal
+ * page). Such tabs are neither counted nor slept.
+ * @param {string} url
+ * @param {string} [title]
+ * @returns {boolean}
  */
 export function isEmptyTabPage(url, title = '') {
   if (!url) return true;
 
-  // URLs that are definitely empty/new tab pages
-  const emptyUrls = [
-    'chrome://newtab/',
-    'chrome://blank',
-    'about:blank',
-    'about:newtab',
-    'edge://newtab/',
-    'edge://blank',
-    'chrome-search://local-ntp/local-ntp.html'
-  ];
-
-  // Check if URL matches empty URLs
-  if (emptyUrls.some(emptyUrl => url === emptyUrl || url.startsWith(emptyUrl))) {
+  if (EMPTY_TAB_URLS.some((emptyUrl) => url === emptyUrl || url.startsWith(emptyUrl))) {
     return true;
   }
 
-  // Check if it's a Chrome internal page with no real content
   if (isChromeInternalPage(url)) {
     return true;
   }
 
-  // Optional: Check if title suggests empty page
-  // But be careful - some pages might legitimately have "New Tab" as title
-  // So we only consider it empty if URL also matches patterns
-  const emptyTitlePatterns = ['new tab', 'blank page', 'about:blank'];
-  const lowerTitle = title.toLowerCase();
+  const lowerTitle = (title || '').toLowerCase();
+  if (!EMPTY_TAB_TITLES.includes(lowerTitle)) return false;
 
-  if (emptyTitlePatterns.some(pattern => lowerTitle === pattern)) {
-    // Double check URL is also suspicious
-    if (url.includes('newtab') || url.includes('blank') || url === 'about:blank') {
-      return true;
-    }
-  }
-
-  return false;
+  // The title alone is not enough ("New Tab" pages exist on real sites), so
+  // require the URL to look browser-generated too.
+  return url.includes('newtab') || url.includes('blank');
 }

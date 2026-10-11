@@ -1,173 +1,194 @@
-import { isWhitelisted, isChromeInternalPage, isEmptyTabPage } from './whitelist.js';
-import { getSettings, isTabLocked } from './storage.js';
+import { getSettings, getLockedTabs, getWhitelist } from './storage.js';
+import {
+  isEmptyTabPage,
+  isChromeInternalPage,
+  extractDomain,
+  matchesAnyPattern
+} from './whitelist.js';
 
 /**
- * Query tabs in the current window
- * @param {Object} queryInfo - Additional query options
- * @returns {Promise<chrome.tabs.Tab[]>} - Array of tabs
+ * Thin, promise-based wrapper around the `chrome.tabs` / `chrome.scripting`
+ * APIs, plus the "may this tab be slept?" decision.
+ *
+ * The decision needs three pieces of storage state. Reading them per tab is
+ * O(n) storage round-trips, which is unacceptable when a batch touches 200
+ * tabs, so callers load them once with `loadSleepContext()` and pass the result
+ * into `canSleepTab()`.
  */
-export async function queryTabs(queryInfo = {}) {
+
+/**
+ * @typedef {Object} SleepContext
+ * @property {Object} settings
+ * @property {string[]} whitelist
+ * @property {Set<number>} lockedTabs
+ */
+
+/**
+ * Reasons a tab cannot be slept. Stable codes on purpose: the UI translates
+ * them, so the service worker carries no user-visible English strings.
+ */
+export const SLEEP_BLOCK_REASON = {
+  ALREADY_SLEEPING: 'alreadySleeping',
+  LOCKED: 'locked',
+  EMPTY: 'emptyTab',
+  INTERNAL: 'internalPage',
+  PINNED: 'pinnedTab',
+  AUDIBLE: 'audibleTab',
+  WHITELISTED: 'whitelisted'
+};
+
+/**
+ * @param {Object} [queryInfo]
+ * @returns {Promise<chrome.tabs.Tab[]>} tabs of the current window
+ */
+export function queryCurrentWindowTabs(queryInfo = {}) {
   return new Promise((resolve, reject) => {
     chrome.tabs.query({ currentWindow: true, ...queryInfo }, (tabs) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(tabs);
-      }
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(tabs || []);
     });
   });
 }
 
 /**
- * Get a specific tab by ID
- * @param {number} tabId - Tab ID
- * @returns {Promise<chrome.tabs.Tab>} - Tab object
+ * @param {Object} [queryInfo]
+ * @returns {Promise<chrome.tabs.Tab[]>} tabs across every window
  */
-export async function getTab(tabId) {
+export function queryAllTabs(queryInfo = {}) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query(queryInfo, (tabs) => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(tabs || []);
+    });
+  });
+}
+
+/**
+ * @param {number} tabId
+ * @returns {Promise<chrome.tabs.Tab>}
+ */
+export function getTab(tabId) {
   return new Promise((resolve, reject) => {
     chrome.tabs.get(tabId, (tab) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(tab);
-      }
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(tab);
     });
   });
 }
 
-/**
- * Sleep a tab (discard it)
- * @param {number} tabId - Tab ID to sleep
- * @returns {Promise<chrome.tabs.Tab>} - Slept tab
- */
-export async function sleepTab(tabId) {
+/** @param {number} tabId @returns {Promise<chrome.tabs.Tab|undefined>} */
+export function discardTab(tabId) {
   return new Promise((resolve, reject) => {
     chrome.tabs.discard(tabId, (tab) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(tab);
-      }
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(tab);
     });
   });
 }
 
-/**
- * Reload a tab
- * @param {number} tabId - Tab ID to reload
- * @returns {Promise<void>}
- */
-export async function reloadTab(tabId) {
+/** @param {number} tabId @returns {Promise<void>} */
+export function reloadTab(tabId) {
   return new Promise((resolve, reject) => {
     chrome.tabs.reload(tabId, () => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve();
-      }
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve();
+    });
+  });
+}
+
+/** @param {number} tabId @returns {Promise<void>} */
+export function activateTab(tabId) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.update(tabId, { active: true }, () => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve();
     });
   });
 }
 
 /**
- * Check if a tab can be slept
- * @param {chrome.tabs.Tab} tab - Tab to check
- * @returns {Promise<{canSleep: boolean, reason: string}>} - Result with reason
+ * Run a self-contained function inside a tab.
+ * @param {number} tabId
+ * @param {(saveScroll: boolean, saveForm: boolean) => Object} func
+ * @param {Array} args
+ * @returns {Promise<*>} the function's return value, or undefined
  */
-export async function canSleepTab(tab) {
-  const settings = await getSettings();
-
-  // Check if already sleeping
-  if (tab.discarded) {
-    return { canSleep: false, reason: 'Tab is already sleeping' };
-  }
-
-  // Check if locked by user
-  if (await isTabLocked(tab.id)) {
-    return { canSleep: false, reason: 'Tab is locked' };
-  }
-
-  // Check if empty/new tab page (should not count or sleep)
-  if (isEmptyTabPage(tab.url, tab.title)) {
-    return { canSleep: false, reason: 'Tab is an empty/new tab page' };
-  }
-
-  // Check if Chrome internal page
-  if (isChromeInternalPage(tab.url)) {
-    return { canSleep: false, reason: 'Cannot sleep Chrome internal pages' };
-  }
-
-  // Check if pinned
-  if (settings.excludePinnedTabs && tab.pinned) {
-    return { canSleep: false, reason: 'Tab is pinned' };
-  }
-
-  // Check if playing audio
-  if (settings.excludeAudibleTabs && tab.audible) {
-    return { canSleep: false, reason: 'Tab is playing audio' };
-  }
-
-  // Check whitelist
-  if (await isWhitelisted(tab.url)) {
-    return { canSleep: false, reason: 'Tab URL is in whitelist' };
-  }
-
-  return { canSleep: true, reason: '' };
+export async function executeScript(tabId, func, args = []) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func,
+    args
+  });
+  return results && results[0] ? results[0].result : undefined;
 }
 
 /**
- * Get all sleepable tabs in current window
- * @returns {Promise<chrome.tabs.Tab[]>} - Array of sleepable tabs
- */
-export async function getSleepableTabs() {
-  const tabs = await queryTabs();
-  const sleepable = [];
-
-  for (const tab of tabs) {
-    const { canSleep } = await canSleepTab(tab);
-    if (canSleep) {
-      sleepable.push(tab);
-    }
-  }
-
-  return sleepable;
-}
-
-/**
- * Check if a tab is sleeping (discarded or unloaded)
- * @param {chrome.tabs.Tab} tab - Tab to check
- * @returns {boolean} - True if sleeping
+ * Check if a tab is sleeping (discarded or never loaded).
+ * @param {chrome.tabs.Tab} tab
+ * @returns {boolean}
  */
 export function isTabSleeping(tab) {
   return tab.discarded === true || tab.status === 'unloaded';
 }
 
 /**
- * Get count of active (non-discarded, non-empty) tabs
- * @returns {Promise<number>} - Number of active tabs
+ * Load the storage state the sleep decision depends on.
+ * @returns {Promise<SleepContext>}
  */
-export async function getActiveTabCount() {
-  const tabs = await queryTabs();
-  return tabs.filter(tab => !isTabSleeping(tab) && !isEmptyTabPage(tab.url, tab.title)).length;
+export async function loadSleepContext() {
+  const [settings, whitelist, lockedTabs] = await Promise.all([
+    getSettings(),
+    getWhitelist(),
+    getLockedTabs()
+  ]);
+  return { settings, whitelist, lockedTabs };
 }
 
 /**
- * Execute script in a tab
- * @param {number} tabId - Tab ID
- * @param {Object} details - Script details
- * @returns {Promise<any[]>} - Script results
+ * Decide whether a tab may be slept.
+ * @param {chrome.tabs.Tab} tab
+ * @param {SleepContext} [context] - omit to load the state on the fly
+ * @returns {Promise<{canSleep: boolean, reason: string}>}
  */
-export async function executeScript(tabId, details) {
-  return new Promise((resolve, reject) => {
-    chrome.scripting.executeScript({
-      target: { tabId },
-      ...details
-    }, (results) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(results);
-      }
-    });
-  });
+export async function canSleepTab(tab, context) {
+  const ctx = context || (await loadSleepContext());
+  const { settings } = ctx;
+
+  if (tab.discarded) {
+    return { canSleep: false, reason: SLEEP_BLOCK_REASON.ALREADY_SLEEPING };
+  }
+
+  if (ctx.lockedTabs.has(tab.id)) {
+    return { canSleep: false, reason: SLEEP_BLOCK_REASON.LOCKED };
+  }
+
+  if (isEmptyTabPage(tab.url, tab.title)) {
+    return { canSleep: false, reason: SLEEP_BLOCK_REASON.EMPTY };
+  }
+
+  if (isChromeInternalPage(tab.url)) {
+    return { canSleep: false, reason: SLEEP_BLOCK_REASON.INTERNAL };
+  }
+
+  if (settings.excludePinnedTabs && tab.pinned) {
+    return { canSleep: false, reason: SLEEP_BLOCK_REASON.PINNED };
+  }
+
+  if (settings.excludeAudibleTabs && tab.audible) {
+    return { canSleep: false, reason: SLEEP_BLOCK_REASON.AUDIBLE };
+  }
+
+  if (matchesAnyPattern(extractDomain(tab.url), ctx.whitelist)) {
+    return { canSleep: false, reason: SLEEP_BLOCK_REASON.WHITELISTED };
+  }
+
+  return { canSleep: true, reason: '' };
+}
+
+/**
+ * @returns {Promise<number>} tabs in the current window that are loaded and not blank
+ */
+export async function getActiveTabCount() {
+  const tabs = await queryCurrentWindowTabs();
+  return tabs.filter((tab) => !isTabSleeping(tab) && !isEmptyTabPage(tab.url, tab.title)).length;
 }
