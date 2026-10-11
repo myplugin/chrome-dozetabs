@@ -1,0 +1,13 @@
+# Optional developer tooling for the real-browser scripts in scripts/.
+#
+# These scripts are not part of the extension and are not needed to build or
+# test it. Install this only if you are changing them:
+#
+#     python -m pip install -r scripts/requirements-dev.txt
+#     npm run lint:py
+#
+# pyflakes catches the class of bug that made popup-e2e-probe.py unusable
+# (an undefined variable referenced inside an f-string) without ever running a
+# browser.
+
+pyflakes>=3.2,<4

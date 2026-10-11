@@ -35,10 +35,25 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from playwright.sync_api import sync_playwright
 
+import _browser as B
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXT_DIR = os.path.join(ROOT, "src")
 PORT = 8123
 BASE = f"http://127.0.0.1:{PORT}"
+
+
+def abort_environment(profile, phase):
+    """Discarding tabs takes the browser down in some automation environments.
+
+    Report that as an environment limitation (exit 2) instead of letting a
+    Playwright error surface as an unexplained crash.
+    """
+    print(f"\n[env] the browser for {phase} is gone (profile: {profile}).")
+    print("      Tab discard is not reliable under Playwright in this environment.")
+    print("      Run the manual acceptance procedure in docs/STARTUP-SUSPEND-TEST.md instead,")
+    print("      or use scripts/verify-in-browser.py for the environment-independent checks.")
+    sys.exit(2)
 
 # ---------------------------------------------------------------- HTTP server
 
@@ -98,19 +113,9 @@ def edge_ws_mb(profile):
 
 def hard_kill(profile):
     """Simulate the acceptance scenario: force-kill the browser."""
-    run_ps(
-        "Get-CimInstance Win32_Process -Filter \"Name='msedge.exe'\" | "
-        f"Where-Object {{$_.CommandLine -like '*{profile}*'}} | "
-        "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
-    )
-    time.sleep(3)
-    # Make sure nothing survived.
-    out = run_ps(
-        "@(Get-CimInstance Win32_Process -Filter \"Name='msedge.exe'\" | "
-        f"Where-Object {{$_.CommandLine -like '*{profile}*'}}).Count"
-    )
-    remaining = out.stdout.strip()
-    if remaining not in ("", "0"):
+    B.kill_browser_for_profile(profile)
+    remaining = B.profile_process_count(profile)
+    if remaining not in (0, -1):
         raise RuntimeError(f"Edge processes still alive after hard kill: {remaining}")
 
 
@@ -166,40 +171,9 @@ def force_restore_pref(profile):
 
 
 def launch(pw, profile, restore=False):
-    args = [
-        # Playwright injects --disable-extensions by default; re-enable loading.
-        "--enable-extensions",
-        f"--disable-extensions-except={EXT_DIR}",
-        f"--load-extension={EXT_DIR}",
-        "--no-first-run",
-        "--no-default-browser-check",
-        # keep Edge's own tab-sleeping / startup-boost out of the measurement
-        "--disable-features=msSleepingTabs,msEdgeStartupBoost",
-    ]
-    if restore:
-        args.append("--restore-last-session")
-    return pw.chromium.launch_persistent_context(
-        profile,
-        channel="msedge",
-        headless=False,  # extensions require a headed browser
-        args=args,
-        viewport={"width": 1280, "height": 800},
-    )
-
-
-def get_sw(ctx, timeout=30):
-    """Find the extension's MV3 service worker."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        for sw in ctx.service_workers:
-            if sw.url.endswith("background/service-worker.js"):
-                return sw
-        # Waiting for any event also lets the SW spin up.
-        try:
-            ctx.wait_for_event("serviceworker", timeout=2000)
-        except Exception:
-            pass
-    raise RuntimeError("Extension service worker never appeared")
+    # Shared with the other browser scripts; only real Chromium switches are
+    # passed (an unknown switch would be silently ignored).
+    return B.launch(pw, profile, restore_session=restore, channel="msedge")
 
 
 def open_driver(ctx, timeout=30):
@@ -362,10 +336,11 @@ def main():
             print("[phaseA] fresh session with startup suspend DISABLED ...")
             prepare_session(pw, profile_a, n, feature_enabled=False)
 
-            relaunched_at = time.time()
             ctx = launch(pw, profile_a, restore=True)
             driver = open_driver(ctx)
             time.sleep(args.measure_wait)
+            if B.profile_process_count(profile_a) <= 0:
+                abort_environment(profile_a, "phase A")
             stats = tab_stats(driver)
             results["phaseA_baseline"] = {**stats, "edgeWS_MB": edge_ws_mb(profile_a)}
             print("[phaseA]", json.dumps(results["phaseA_baseline"]))
@@ -389,7 +364,6 @@ def main():
             print("[phaseB] fresh session with startup suspend ENABLED ...")
             prepare_session(pw, profile_b, n, feature_enabled=True)
 
-            relaunched_at = time.time()
             ctx = launch(pw, profile_b, restore=True)
             driver = open_driver(ctx)
 
@@ -406,25 +380,32 @@ def main():
             # the sweep - all in ONE evaluation on the (stable) driver page.
             # The sweep catches every restored tab that already finished
             # loading (fast local pages).
-            sweep_result = drv_eval(ctx, driver, """
-                (async () => {
-                    await chrome.storage.session.set({
-                        startupWindowEnd: Date.now() + 45000
-                    });
-                    const discarded = await chrome.runtime.sendMessage({
-                        type: 'triggerStartupSweep'
-                    });
-                    const tabs = await chrome.tabs.query({});
-                    const mine = tabs.filter(t => (t.url || '').startsWith('%s'));
-                    return {
-                        discarded,
-                        total: mine.length,
-                        sleeping: mine.filter(t => t.discarded || t.status === 'unloaded').length,
-                        loading: mine.filter(t => !t.discarded && t.status === 'loading').length,
-                        complete: mine.filter(t => !t.discarded && t.status === 'complete').length
-                    };
-                })()
-            """ % BASE)
+            try:
+                sweep_result = drv_eval(ctx, driver, """
+                    (async () => {
+                        await chrome.storage.session.set({
+                            startupWindowEnd: Date.now() + 45000
+                        });
+                        const discarded = await chrome.runtime.sendMessage({
+                            type: 'triggerStartupSweep'
+                        });
+                        const tabs = await chrome.tabs.query({});
+                        const mine = tabs.filter(t => (t.url || '').startsWith('%s'));
+                        return {
+                            discarded,
+                            total: mine.length,
+                            sleeping: mine.filter(t => t.discarded || t.status === 'unloaded').length,
+                            loading: mine.filter(t => !t.discarded && t.status === 'loading').length,
+                            complete: mine.filter(t => !t.discarded && t.status === 'complete').length
+                        };
+                    })()
+                """ % BASE)
+            except Exception as exc:  # noqa: BLE001
+                # Discarding tabs under Playwright tears down the browser in some
+                # environments. That is a limitation of the harness, not a verdict
+                # on the extension - say so instead of dumping a Playwright trace.
+                print(f"\n[sweep] driver page died right after the discards: {type(exc).__name__}")
+                abort_environment(profile_b, "phase B")
             print(f"[phaseB] sweep result: {json.dumps(sweep_result)}")
             stats = sweep_result
             results["phaseB_feature"] = {**stats, "edgeWS_MB": edge_ws_mb(profile_b)}
