@@ -110,6 +110,30 @@ git push github master --tags     # 双推：让镜像立刻跟上（可选）
 因此：**日常请推 Gitee（`origin`）**；只推 GitHub 时同步任务会报警并在 6 小时窗口内
 持续失败，直到你把 Gitee 补上。
 
+### 推送 GitHub 失败时（网络受限环境）
+
+国内网络对 `github.com:22` 和 `ssh.github.com:443` 都存在**概率性阻断**，表现为：
+
+```
+ssh_dispatch_run_fatal: Connection to <ip> port 22: Connection timed out
+Connection reset by <ip> port 22
+fatal: Could not read from remote repository.
+```
+
+**这不代表配置写错了。** 按顺序处理：
+
+1. **先确认别名解析正确**：`ssh -G github-pycv | grep -E '^(hostname|port|identityfile)'`
+   应输出 `ssh.github.com` / `443` / `id_ed25519_github_asuspc_pycv`。
+   如果 `port 22` 且 `hostname github.com`，说明配置被改回去了——把 `HostName` 设为
+   `ssh.github.com` 并加 `Port 443`（GitHub 官方针对端口 22 被封的解法）。
+2. **直接重试**。实测大约每 3~4 次成功一次，重试即可，不要改配置：
+   ```bash
+   for i in 1 2 3 4 5 6 7 8; do git push github master && break; sleep 8; done
+   ```
+3. **完全推不动时的兜底**：在 GitHub 网页上手动触发同步工作流
+   （**Actions → Mirror from Gitee → Run workflow**）。它跑在 GitHub 自己的机器上，
+   不经过你的本地网络，会把 Gitee 的最新提交同步上来。
+
 两个必须知道的限制：
 
 1. **用工作流自带的 `GITHUB_TOKEN` 推送，不会触发其他工作流**（GitHub 用来防止递归）。
