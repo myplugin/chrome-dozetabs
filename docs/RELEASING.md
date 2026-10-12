@@ -100,16 +100,35 @@ git push origin master --tags
 **「默认分支」是仓库属性，`git` 做不到**，只能在两个平台的仓库设置里各自操作；
 并须同步本文档、`.github/ISSUE_TEMPLATE/config.yml` 与 `CONTRIBUTING.md` 的分支引用。
 
-| remote   | 地址                                            | 角色                                |
-| -------- | ----------------------------------------------- | ----------------------------------- |
-| `origin` | `git@gitee.com:xplugins/chrome-tab-sleep.git`   | 主开发仓库（对外可见，日常推送/PR） |
-| `github` | `git@github-pycv:myplugin/chrome-tab-sleep.git` | 私有镜像（CI + 备份，外部不可见）   |
+| remote   | 地址                                           | 角色                                |
+| -------- | ---------------------------------------------- | ----------------------------------- |
+| `origin` | `git@gitee.com:xplugins/chrome-tab-sleep.git`  | 主开发仓库（对外可见，日常推送/PR） |
+| `github` | `git@github.com:myplugin/chrome-tab-sleep.git` | 私有镜像（CI + 备份，外部不可见）   |
 
-> **为什么用 `github-pycv` 而不是 `github.com`**：`~/.ssh/config` 里为 pycv 账户配了
-> 专用别名（`Host github-pycv` + `IdentityFile ~/.ssh/id_ed25519_github_asuspc_pycv`），
-> 但**没有 `Host github.com` 段**。所以裸 `git@github.com:...` 不会使用这把 key——
-> 实测得到 `Permission denied (publickey)`。换机器或换账户前，先跑
-> `ssh -T git@github-pycv`，确认返回 `Hi pycv!` 再推送。
+> **维护者本机的 remote 地址可能与上表不同**：`github.com:22` 在部分网络下会被
+> 概率性阻断，官方解法是改走 `ssh.github.com:443`。维护者用 `~/.ssh/config` 里的
+> **主机别名**来为不同账号分配不同的 key——例如
+>
+> ```sshconfig
+> Host github-myaccount
+>   HostName ssh.github.com   # 22 端口被网络阻断时的官方替代
+>   Port 443
+>   User git
+>   IdentityFile ~/.ssh/id_ed25519_github_myaccount
+> ```
+>
+> 之后 remote 写成 `git@github-myaccount:owner/repo.git` 即可。
+> **关键在于别名必须覆盖主机名**：如果只配了 `Host github-myaccount` 而没有对应的
+> `Host github.com` 段，那么裸 `git@github.com:...` **不会**使用这把 key，会得到
+> `Permission denied (publickey)`。
+>
+> 具体的 key 路径与别名属于**每台机器各自的配置**，因此本文不写死任何一个——
+> 它们对别人毫无意义，写进公开仓库也平白暴露维护者的环境信息。
+> 以自己的 `~/.ssh/config` 为准；推送前自检 `ssh -T git@<你的别名>`，
+> 看到 `Hi <你的用户名>!` 即通了。
+
+表中 `github-pycv` 是**维护者本机** `~/.ssh/config` 里的别名。没有这份配置的机器，
+直接用官方地址即可：`git@github.com:myplugin/chrome-tab-sleep.git`。
 
 ### 日常推送
 
@@ -143,8 +162,8 @@ fatal: Could not read from remote repository.
 
 **这不代表配置写错了。** 按顺序处理：
 
-1. **先确认别名解析正确**：`ssh -G github-pycv | grep -E '^(hostname|port|identityfile)'`
-   应输出 `ssh.github.com` / `443` / `id_ed25519_github_asuspc_pycv`。
+1. **先确认别名解析正确**：`ssh -G <你的别名> | grep -E '^(hostname|port|identityfile)'`
+   应输出 `ssh.github.com` / `443` / 你为这个账号配的那把 key（见上文示例）。
    如果 `port 22` 且 `hostname github.com`，说明配置被改回去了——把 `HostName` 设为
    `ssh.github.com` 并加 `Port 443`（GitHub 官方针对端口 22 被封的解法）。
 2. **直接重试**。实测大约每 3~4 次成功一次，重试即可，不要改配置：
