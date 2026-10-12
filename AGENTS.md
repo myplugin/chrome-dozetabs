@@ -17,11 +17,11 @@ Tab Sleep 是一个 Chrome/Edge **Manifest V3 扩展**，用 Chrome 原生的
 ```bash
 npm ci                 # 仅安装 eslint / prettier（测试零依赖）
 npm run check          # 提交前必跑：格式 + lint + manifest/多语言/协议校验 + 测试
-npm test               # node:test 测试套件（135 项断言）
+npm test               # node:test 测试套件（137 项断言）
 npm run test:startup   # 只跑启动休眠相关的两组测试
 npm run validate       # 只跑一致性校验
 npm run lint:py        # 检查 scripts/*.py（需 pip install -r scripts/requirements-dev.txt）
-python scripts/verify-in-browser.py   # 真机验证：加载/UI 渲染/采集与恢复（41 项断言）
+python scripts/verify-in-browser.py   # 真机验证：加载/UI 渲染/采集与恢复（42 项断言）
 npm run build          # 产出 dist/tab-sleep-v<version>.zip
 npm run format         # Prettier 全量格式化
 ```
@@ -35,9 +35,8 @@ npm run format         # Prettier 全量格式化
    `canSleepTab()`。**不要**在 popup/options 里复制任何判定逻辑。
 2. **模块不得在导入时产生副作用。** `chrome.*.addListener` 只允许出现在
    `src/background/service-worker.js`。其余模块导出函数，由入口接线——否则测试无法驱动它们。
-3. **存储键与消息类型只在 `src/utils/constants.js` 定义。** 唯一例外是内容脚本
-   （classic script，不能用 `import`）；它使用的字面量必须与常量一致，
-   `npm run validate` 会检查。
+3. **存储键与消息类型只在 `src/utils/constants.js` 定义。** `npm run validate` 会检查
+   「声明即处理」，不要在别处硬编码这些字面量。
 4. **所有跨进程 `read-modify-write` 必须走 `withStorageLock()`。**
    批量休眠是 10 路并发的，裸 `get` → 改 → `set` 会丢更新。
 5. **不要新增浏览器权限**，除非在 PR 里论证无法避免。权限变化会影响所有
@@ -72,6 +71,6 @@ npm run format         # Prettier 全量格式化
   `setUnrefTimeout`（`src/utils/timers.js`）以免测试进程挂住。
 - `chrome.tabs.discard()` 对当前活动标签页会失败，休眠前必须先切走
   （`src/background/sleep.js:switchAwayFromTab()`）。
-- 内容脚本**不能** `import` 任何模块；不要试图「顺手复用」`utils/`。
+- 注入到页面的函数（`src/background/tab-state.js`）必须**完全自包含**：不能 `import`、不能引用模块级变量，因为它是被序列化后送进页面的。
 - 不要给测试脚本或调试代码留产品后门；唯一的测试钩子是
   `TRIGGER_STARTUP_SWEEP`（真机冒烟测试在用，已在架构文档中登记）。

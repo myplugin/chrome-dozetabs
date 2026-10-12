@@ -39,7 +39,7 @@ npm run check
 | 格式       | `npm run format:check` | Prettier 风格是否一致                        |
 | 静态检查   | `npm run lint`         | ESLint 规则（含未使用变量、未定义全局变量）  |
 | 一致性校验 | `npm run validate`     | manifest 引用、多语言 key 对齐、消息协议闭环 |
-| 测试       | `npm test`             | 135 项单元 + 集成断言（`node:test`，零依赖） |
+| 测试       | `npm test`             | 137 项单元 + 集成断言（`node:test`，零依赖） |
 
 单独运行某一项也是可以的，例如 `npm test`、`node tool/validate.js --only i18n`。
 
@@ -48,7 +48,7 @@ npm run check
 ```bash
 python -m pip install -r scripts/requirements-dev.txt
 npm run lint:py                       # pyflakes：抓未定义变量一类的错误
-python scripts/verify-in-browser.py   # 真机验证：加载 / UI 渲染 / 采集与恢复（41 项断言）
+python scripts/verify-in-browser.py   # 真机验证：加载 / UI 渲染 / 采集与恢复（42 项断言）
 ```
 
 `verify-in-browser.py` 是**唯一**能在自动化环境稳定跑通的真机检查：改动任何 UI 或
@@ -73,7 +73,7 @@ src/
     startup-suspend.js     启动抢先休眠（本项目最核心的能力）
     badge.js / menus.js / tab-state.js
   utils/                 两端（SW 与 UI）共享的纯逻辑
-  popup/ options/ content/ UI 与内容脚本
+  popup/ options/            UI 页面（无内容脚本：恢复逻辑由 worker 按需注入）
 tests/                   node:test 测试与共享 chrome mock
 tool/                    打包、校验脚本
 docs/                    架构、测试、发布、ADR
@@ -89,8 +89,11 @@ docs/                    架构、测试、发布、ADR
 2. **模块不在导入时产生副作用。** 事件监听只允许写在 `background/service-worker.js`，
    其他模块导出函数、由入口接线。这样测试才能直接驱动它们。
 3. **磁盘上的状态键与跨进程的消息类型只在 `src/utils/constants.js` 定义。**
-   内容脚本因为不能 `import`，是唯一例外——它使用的字面量必须与常量一致，
-   `npm run validate` 会检查这一点。
+   `npm run validate` 会检查「声明即处理」，所以不要在别处硬编码这些字面量。
+4. **注入到页面的函数必须完全自包含。** `src/background/tab-state.js` 里的
+   `captureTabState` / `restoreTabState` 会被序列化后送进页面，不能 `import`、
+   也不能引用任何模块级变量——只能用 `window` / `document`。详见
+   [ADR-0008](docs/adr/0008-inject-on-demand-instead-of-content-script.md)。
 
 ---
 

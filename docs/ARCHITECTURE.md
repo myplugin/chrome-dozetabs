@@ -68,13 +68,10 @@
         ┌──────────────────────────────────────────┐
         │ chrome.storage.local / .session          │
         └──────────────────────────────────────────┘
-                           ▲
-                           │ chrome.runtime.sendMessage
-        ┌──────────────────┴───────────────────────┐
-        │ Content Script (content/content-script.js)│
-        │ 在每个页面运行，唤醒后恢复滚动/表单       │
-        └──────────────────────────────────────────┘
 ```
+
+**没有常驻内容脚本**：扩展默认不出现在任何页面里。恢复脚本只在"某个标签页加载完成
+且有待恢复的状态"时被注入一次（见 [ADR-0008](adr/0008-inject-on-demand-instead-of-content-script.md)）。
 
 **关键推论**：Service Worker 随时可能被回收，所以任何需要跨事件存活的运行时状态
 都必须落到 `chrome.storage.session`（见 `utils/session-store.js`）。
@@ -112,7 +109,6 @@ src/
 │   └── timers.js              setUnrefTimeout
 ├── popup/                     弹窗：标签页列表 + 两个批量按钮
 ├── options/                   选项页：设置 / 白名单 / 统计
-├── content/                   内容脚本：唤醒后恢复状态
 ├── _locales/{en,zh_CN}/       文案
 └── assets/icons/              图标
 ```
@@ -123,7 +119,6 @@ src/
 popup / options ──▶ utils/*        （只读状态，不做判定）
 background/*   ──▶ utils/*        （全部业务规则）
 utils/*        ──▶ 无内部依赖（whitelist 依赖 storage，storage 依赖 constants）
-content/*      ──▶ 无 import（classic script，只能发消息）
 ```
 
 **没有环**。`background/service-worker.js` 是唯一注册 `chrome.*` 监听器的地方，
@@ -252,22 +247,28 @@ Chrome 自行重新加载该标签页 ──▶ chrome.tabs.onActivated 触发
         │                          ├─ statistics.totalWoken += 1
         │                          └─ 不删除 sleepingTabs：页面还没来领
         ▼
-页面加载 → 内容脚本运行 (document_idle)
-        │
-        └─ sendMessage({type:'consumeRestoreState'})
-                 │
-                 ▼
-           SW 从 sleepingTabs 取出状态 → 立即删除 → 返回给页面
-                 │
-                 ▼
-           页面应用滚动位置与表单值，并派发 input/change 事件
+页面加载完成 ──▶ chrome.tabs.onUpdated (status === 'complete')
+                       │
+                       ▼
+                 sleep.js: restoreIntoTab(tabId)
+                 ├─ sleepingTabs 里有该标签页吗？没有就结束
+                 ├─ executeScript({ func: restoreTabState, args: [state] })
+                 └─ **注入成功后**才删除存储条目（失败则重试，最多 3 次）
+                       │
+                       ▼
+                 页面应用滚动位置与表单值，并派发 input/change 事件
 ```
 
-**为什么状态在休眠时就落盘，而不是唤醒时才写**：唤醒那一刻页面正在加载，
-内容脚本随时可能已经开始执行。如果迁移状态需要一个中间键 + 定时器清理
-（重构前的做法：写入 `restore_<tabId>`，5 秒后删除），就会出现
+**为什么必须等 `status === 'complete'`**：这是实测结论，不是风格偏好。在标签页
+刚开始重新加载时就注入，成功率只有 **1/25**（错误是 `Frame with ID 0 was removed.`
+——旧 document 已销毁、新 document 尚未就绪）；等加载完成再注入是 **25/25**。
+危险之处在于失败是**静默的**：页面照常打开，只是滚动位置和表单内容悄悄没了。
+数据见 [ROADMAP L1](ROADMAP.md)。
+
+**为什么状态在休眠时就落盘**：唤醒那一刻页面正在加载。如果迁移状态需要一个中间键
+加定时器清理（重构前的做法：写入 `restore_<tabId>`，5 秒后删除），就会出现
 「页面还没读完、状态已被清掉」或「状态残留被下次加载重放」两类竞态。
-把状态放在休眠时就写好的位置、由页面**一次性领取**，这两类问题都不存在。
+现在状态在休眠时就写到位，由扩展在加载完成后注入并**在成功后**删除。
 
 ### 6.4 启动抢先休眠（核心能力）
 
@@ -318,18 +319,18 @@ chrome.alarms（每 1 分钟）→ runAutoSleepCheck()
 | 模块导入时无副作用                                   | 否则测试无法驱动，只能靠真机   | 无法为逻辑写回归测试               |
 | 跨事件状态必须落 `storage.session`                   | MV3 Worker 约 30s 被回收       | 功能静默失效（自动休眠的历史缺陷） |
 | 跨进程 read-modify-write 必须串行化                  | 批量休眠 10 路并发             | 统计与状态丢更新                   |
-| 内容脚本与 SW 共享逻辑只能通过消息                   | 内容脚本不能 `import`          | 见下                               |
+| 注入到页面的函数必须完全自包含                       | 它会被序列化后送进页面         | 注入后报 `x is not defined`        |
+| 恢复注入必须等 `status === 'complete'`               | 提前注入实测只有 4% 成功率     | 静默丢失滚动位置与表单内容         |
+| 不要在 `src/` 里发起网络请求                         | 隐私承诺由 validate 强制       | CI 直接失败                        |
 
-### 关于内容脚本的重复实现
+### 关于注入到页面的代码
 
-`content/content-script.js` 与 `background/tab-state.js` 都涉及「表单字段的读写」。
-内容脚本是 classic script，**不能 `import`**，而注入到页面的函数必须是自包含的
-（序列化后执行）。因此这份逻辑无法完全去重。
+`background/tab-state.js` 里的 `captureTabState` 与 `restoreTabState` 会被序列化
+后送进页面，因此**不能 `import`、不能引用模块级变量**——只能用 `window` / `document`。
 
-处理方式：把页面上下文里的**采集**收敛到 `tab-state.js` 一个函数；
-内容脚本只保留**恢复**所需的最小实现；两者的行为差异写在 ADR-0004 里。
-如果未来不再需要常驻内容脚本（改为唤醒时按需注入），这部分重复可以彻底消除——
-已列入 [ROADMAP](ROADMAP.md)。
+这两种函数此前分居两处（采集在 worker，恢复在一个常驻内容脚本里），而内容脚本
+不能 `import`，于是表单字段的读写逻辑被写了两遍。[ADR-0008](adr/0008-inject-on-demand-instead-of-content-script.md)
+移除了常驻内容脚本，两者终于住在同一个文件里——那处重复已经消失。
 
 ---
 
@@ -341,7 +342,8 @@ chrome.alarms（每 1 分钟）→ runAutoSleepCheck()
 | 页面内 JS 状态丢失               | `discard()` 的固有语义                                                            | 无法解决                |
 | 复杂富文本编辑器内容可能恢复不全 | 基于 `value` 回填 + `input`/`change` 事件                                         | 尽力而为                |
 | Worker 被回收会打断清扫定时器    | 窗口内 Worker 重启会自动恢复清扫，但存在最长约 750ms 的空档                       | 可接受                  |
-| `<all_urls>` 主机权限            | 状态采集需要；也是安装提示的来源                                                  | 见 ROADMAP 的最小化计划 |
+| `<all_urls>` 主机权限            | 休眠时需要在页面里采集滚动位置与表单内容，因此仍需该权限；也是安装提示的来源      | 见 ROADMAP 的最小化计划 |
+| 恢复依赖 MV3 事件送达            | 注入连续失败时会推迟到该标签页的下一次加载（状态不会丢失）                        | 可接受                  |
 | ~~favicon 需一次对外请求~~       | 已消除：改用浏览器内置 `_favicon/` 端点，图标由 Chrome 从自身缓存提供             | 对外请求为零            |
 
 ---

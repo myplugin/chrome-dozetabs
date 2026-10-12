@@ -106,9 +106,6 @@ export const MESSAGE_TYPES = {
   SLEEP_ALL_OTHER: 'sleepAllOther',
   WAKE_TAB: 'wakeTab',
 
-  // State-restore handshake with the content script
-  CONSUME_RESTORE_STATE: 'consumeRestoreState',
-
   // Whitelist
   GET_WHITELIST: 'getWhitelist',
   ADD_TO_WHITELIST: 'addToWhitelist',

@@ -111,12 +111,11 @@ describe('MESSAGE_TYPES', () => {
   });
 
   it('keeps the wire values stable', () => {
-    // These strings cross the process boundary between the UI, the content
-    // script and the worker; renaming one silently breaks the pair.
+    // These strings cross the process boundary between the UI and the worker;
+    // renaming one silently breaks the pair.
     assert.equal(MESSAGE_TYPES.SLEEP_TAB, 'sleepTab');
     assert.equal(MESSAGE_TYPES.SLEEP_ALL_OTHER, 'sleepAllOther');
     assert.equal(MESSAGE_TYPES.WAKE_TAB, 'wakeTab');
-    assert.equal(MESSAGE_TYPES.CONSUME_RESTORE_STATE, 'consumeRestoreState');
     assert.equal(MESSAGE_TYPES.TRIGGER_STARTUP_SWEEP, 'triggerStartupSweep');
   });
 });

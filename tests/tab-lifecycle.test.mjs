@@ -22,6 +22,7 @@ beforeEach(() => {
   state.discarded = [];
   state.reloaded = [];
   state.created = [];
+  state.injected = [];
   state.local = {};
 });
 
@@ -108,33 +109,82 @@ describe('waking a tab', () => {
   });
 });
 
-describe('state restore handshake', () => {
-  const sender = { id: 'test-extension-id', tab: { id: 1 } };
-
-  it('hands the captured state over exactly once', async () => {
+describe('wake-up state restore (injected on load)', () => {
+  it('injects the saved state once the tab finishes loading', async () => {
     state.tabs = [makeTab(1, { url: 'https://example.com/', title: 'Example' })];
     await sendMessage(chrome, { type: 'sleepTab', payload: { tabId: 1 } });
 
-    const first = await sendMessage(chrome, { type: 'consumeRestoreState' }, sender);
-    assert.ok(first.state, 'the state should be returned to the page');
-    assert.equal(first.state.originalUrl, 'https://example.com/');
+    const { sleepingTabs } = await chrome.storage.local.get('sleepingTabs');
+    assert.ok(sleepingTabs[1], 'sleeping a tab records its state');
 
-    const second = await sendMessage(chrome, { type: 'consumeRestoreState' }, sender);
-    assert.equal(second.state, null, 'a second page load must not replay stale input');
-  });
+    // Sleeping itself injected captureTabState; only the restore injection matters here.
+    state.injected = [];
 
-  it('returns null when there is nothing to restore', async () => {
-    const response = await sendMessage(chrome, { type: 'consumeRestoreState' }, sender);
-    assert.equal(response.state, null);
-  });
+    // The tab comes back: the worker waits for 'complete', then injects.
+    await chrome.tabs.onUpdated.trigger(1, { status: 'complete' }, state.tabs[0]);
 
-  it('returns null when the sender has no tab', async () => {
-    const response = await sendMessage(
-      chrome,
-      { type: 'consumeRestoreState' },
-      { id: 'test-extension-id' }
+    assert.equal(state.injected.length, 1, 'exactly one injection');
+    const call = state.injected[0];
+    assert.equal(call.target.tabId, 1);
+    assert.equal(call.args[0].originalUrl, 'https://example.com/', 'state travels as an argument');
+    assert.equal(typeof call.func, 'function');
+
+    const after = await chrome.storage.local.get('sleepingTabs');
+    assert.equal(
+      after.sleepingTabs[1],
+      undefined,
+      'state is consumed after a successful injection'
     );
-    assert.equal(response.state, null);
+  });
+
+  it('does not inject for a tab that has no saved state', async () => {
+    state.tabs = [makeTab(2)];
+    await chrome.tabs.onUpdated.trigger(2, { status: 'complete' }, state.tabs[0]);
+    assert.equal(state.injected.length, 0);
+  });
+
+  it('injects nothing while the tab is still loading', async () => {
+    state.tabs = [makeTab(3)];
+    await sendMessage(chrome, { type: 'sleepTab', payload: { tabId: 3 } });
+    state.injected = [];
+
+    await chrome.tabs.onUpdated.trigger(3, { status: 'loading' }, state.tabs[0]);
+    assert.equal(
+      state.injected.length,
+      0,
+      'injecting early lands on a document about to be replaced'
+    );
+  });
+
+  it('keeps the state when every injection attempt fails', async () => {
+    state.tabs = [makeTab(4)];
+    await sendMessage(chrome, { type: 'sleepTab', payload: { tabId: 4 } });
+    state.injected = [];
+
+    const original = chrome.scripting.executeScript;
+    chrome.scripting.executeScript = async () => {
+      throw new Error('Frame with ID 0 was removed.');
+    };
+    try {
+      await chrome.tabs.onUpdated.trigger(4, { status: 'complete' }, state.tabs[0]);
+    } finally {
+      chrome.scripting.executeScript = original;
+    }
+
+    const { sleepingTabs } = await chrome.storage.local.get('sleepingTabs');
+    assert.ok(sleepingTabs[4], 'a failed restore must not lose the state');
+  });
+
+  it('does not replay the state on a later load', async () => {
+    state.tabs = [makeTab(5)];
+    await sendMessage(chrome, { type: 'sleepTab', payload: { tabId: 5 } });
+    state.injected = [];
+
+    await chrome.tabs.onUpdated.trigger(5, { status: 'complete' }, state.tabs[0]);
+    const firstRound = state.injected.length;
+
+    await chrome.tabs.onUpdated.trigger(5, { status: 'complete' }, state.tabs[0]);
+    assert.equal(state.injected.length, firstRound, 'a second load must not replay stale input');
   });
 });
 

@@ -41,6 +41,10 @@ function readJson(file) {
 }
 
 function walk(dir, filter) {
+  // Tolerate a missing directory: the tree changes over time, and a hard crash
+  // here reads like a validator bug rather than a real problem.
+  if (!fs.existsSync(dir)) return [];
+
   const results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
@@ -327,22 +331,9 @@ function validateMessages() {
     }
   }
 
-  // Bundler-free content scripts cannot import constants.js, so any literal
-  // they use must still match a declared wire value.
-  const wireValues = new Set(declared.values());
-  for (const file of walk(path.join(SRC, 'content'), (f) => f.endsWith('.js'))) {
-    const source = fs.readFileSync(file, 'utf8');
-    for (const match of source.matchAll(/\b([A-Z_]+)\s*=\s*'([^']+)'/g)) {
-      if (!/sendMessage|type/i.test(source.slice(0, 400))) continue;
-      if (!wireValues.has(match[2])) {
-        fail(
-          'messages',
-          `${rel(file)} uses message type "${match[2]}" (${match[1]}) that is not declared`
-        );
-      }
-    }
-  }
-
+  // The content script was removed (ADR-0008): every page-context function is now
+  // injected from the worker, so there is no longer any file that cannot import
+  // constants.js — and with it, no place for a message literal to drift.
   notes.push(`messages: ${declared.size} message types, all handled`);
 }
 

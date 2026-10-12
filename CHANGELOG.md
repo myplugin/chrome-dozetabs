@@ -70,6 +70,16 @@
 
 ### 重构
 
+- **移除常驻内容脚本**：原先 `content/content-script.js` 通过 `content_scripts`
+  注入到用户访问的**每一个网页**，每次加载都跑一次，只为问一句「有状态要恢复吗」。
+  现已从 manifest 移除、文件删除，恢复改为在标签页**加载完成时按需注入**。
+  注入时机是这件事的关键：实测在标签页刚开始重载时注入只有 **1/25** 成功率
+  （`Frame with ID 0 was removed.`），等 `status === 'complete'` 则是 **25/25**；
+  而且失败是静默的——页面照常打开，只是滚动位置和表单内容悄悄没了。
+  因此实现为事件驱动，并且**只在注入成功后才删除存储条目**（失败重试 3 次，不丢数据）。
+  连带收获：`captureTabState` 与 `restoreTabState` 终于住进同一个文件，
+  **ADR-0004 记录的那处无法消除的重复消失了**，该 ADR 标记废弃。
+  权限不变，安装提示无变化。
 - `src/background/service-worker.js` 由 **1025 行**拆分为 10 个职责单一的模块，
   入口文件只保留事件接线（约 150 行），不再包含业务规则。
 - 消除三处重复实现：白名单/域名匹配、浏览器内部页面判定、标签页休眠状态判定；
@@ -87,7 +97,7 @@
 - 新增 **ESLint 10**（flat config）与 **Prettier**，`.editorconfig`、`.gitattributes`、
   `.nvmrc`；`npm run check` 一条命令跑完格式、静态检查、一致性校验与测试。
 - 测试栈从 vitest 迁移到 **Node 内置 `node:test`**，实现零运行时依赖的测试：
-  断言数由 37 增至 **135**，覆盖存储层并发、设置清洗、休眠判定矩阵、
+  断言数由 37 增至 **137**，覆盖存储层并发、设置清洗、休眠判定矩阵、
   消息路由与启动休眠不变量；`tests/helpers/chrome-mock.js` 提供可复用的 chrome API 模拟。
 - 新增 `tool/validate.js`：校验 manifest 引用、多语言 key 对齐、
   消息类型「声明即处理」，并修正了原 i18n 检查脚本的误报
@@ -99,7 +109,7 @@
   每 6 小时自动同步分支与 tag，并在同一次运行里完成校验与打包。
 - 重构真机脚本：抽出 `scripts/_browser.py`；删除 `popup-e2e-probe.py`（未定义变量
   导致每次必崩、从未完整跑通）与 `sw-log-probe.py`（检查失败仍返回 0，假绿）；
-  新增 `scripts/verify-in-browser.py`——41 项断言、退出码可信，覆盖扩展加载、
+  新增 `scripts/verify-in-browser.py`——42 项断言、退出码可信，覆盖扩展加载、
   设置默认值、弹窗与选项页渲染、状态采集（含密码排除）与唤醒恢复握手。
 - `scripts/measure-memory.ps1` 支持 `-Profile` 过滤与 `-MaxWorkingSetGb` 阈值退出码，
   并补 UTF-8 BOM 以修正 Windows PowerShell 5.1 下的中文乱码。

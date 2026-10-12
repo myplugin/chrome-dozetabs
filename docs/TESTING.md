@@ -6,7 +6,7 @@
 ```
        覆盖范围 / 成本
   高 ┌────────────────────────────────────────────┐
-     │ 单元测试 (node:test)                        │  135 项断言
+     │ 单元测试 (node:test)                        │  137 项断言
      │ tests/unit/**                               │  零依赖，毫秒级
      ├────────────────────────────────────────────┤
      │ 集成测试 (node:test + chrome mock)          │  驱动真实 Service Worker
@@ -22,7 +22,7 @@
 ## 1. 一条命令
 
 ```bash
-npm test          # node --test  —— 全部 135 项断言
+npm test          # node --test  —— 全部 137 项断言
 npm run check     # 格式 + lint + 一致性校验 + 测试
 ```
 
@@ -93,7 +93,7 @@ UI 是否真的渲染，这些只能靠真机跑。脚本分两类：
 
 | 脚本                           | 用途                                                              |
 | ------------------------------ | ----------------------------------------------------------------- |
-| `scripts/verify-in-browser.py` | 41 项断言：扩展加载、设置默认值、弹窗与选项页渲染、采集、恢复握手 |
+| `scripts/verify-in-browser.py` | 42 项断言：扩展加载、设置默认值、弹窗与选项页渲染、采集、恢复握手 |
 
 ```bash
 python scripts/verify-in-browser.py          # 退出码 0 才代表通过
@@ -151,17 +151,24 @@ node tool/validate.js --only i18n
 node tool/validate.js --json
 ```
 
-`tool/validate.js` 检查四类「浏览器只会在运行时才发现」的错误：
+`tool/validate.js` 检查五类「浏览器只会在运行时才发现」的错误：
 
 1. **manifest 引用**：`background.service_worker`、`action.default_popup`、
-   `options_page`、`content_scripts[].js/css`、`icons` 指向的文件是否存在且非空。
+   `options_page`、`icons` 指向的文件是否存在且非空。
 2. **版本一致性**：`src/manifest.json` 与 `package.json` 的 `version` 必须相同
    （版本号唯一来源是 manifest）。
 3. **多语言对齐**：各语言 key 集合必须完全一致；代码/HTML/manifest 中引用的
    key 必须已定义（支持 `data-i18n`、`data-i18n-title`、`data-i18n-placeholder`、
    `t('…')`、`getMessage('…')`、`__MSG_x__`）。定义了但从未引用只报 warn。
 4. **消息协议闭环**：`MESSAGE_TYPES` 中声明的每一项都必须在 `router.js` 中有处理
-   函数（反之亦然），并且内容脚本里写死的字面量与常量一致。
+   函数（反之亦然）。
+5. **privacy**：`src/` 中出现 `fetch()` / `XMLHttpRequest` / `WebSocket` 即判定失败。
+   README 与 `PRIVACY.md` 承诺「零对外请求」，这条承诺不能只靠自觉
+   （注释里提到 `fetch()` 不会误报，扫描前会先去注释）。
+
+```bash
+node tool/validate.js --only privacy
+```
 
 ---
 

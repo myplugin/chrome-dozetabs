@@ -52,6 +52,7 @@ export function createChromeMock(options = {}) {
     discarded: [],
     reloaded: [],
     created: [],
+    injected: [],
     local: {},
     session: {},
     badgeText: '',
@@ -254,8 +255,13 @@ export function createChromeMock(options = {}) {
     },
     commands: { onCommand: createEvent() },
     scripting: {
-      // Cannot evaluate page functions without a DOM; see the file header.
-      executeScript: async () => [{ result: undefined }]
+      // Cannot evaluate page functions without a DOM. Calls are still recorded
+      // so tests can assert *what* was injected, into which tab, and with which
+      // arguments.
+      executeScript: async (options) => {
+        state.injected.push(options);
+        return [{ result: undefined }];
+      }
     },
     i18n: {
       getMessage: (key) => options.locale ?? key

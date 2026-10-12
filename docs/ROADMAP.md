@@ -49,7 +49,7 @@
 - **删除** `popup-e2e-probe.py`（`active_before` 未定义导致每次必崩，从未完整跑通过）
   与 `sw-log-probe.py`（检查失败仍以 0 退出，假绿；且它宣传的"dump SW 日志"能力
   在 Playwright 下根本不可用）；
-- **新增** `scripts/verify-in-browser.py`：41 项断言、退出码可信，覆盖扩展加载、
+- **新增** `scripts/verify-in-browser.py`：42 项断言、退出码可信，覆盖扩展加载、
   设置默认值、弹窗/选项页渲染、状态采集（含密码排除）与唤醒恢复握手。
   已在本机真实 Edge 上跑通；
 - 修掉 `get_sw()` 死代码、`relaunched_at` 未使用、无效的 `--enable-extensions` 开关；
@@ -94,7 +94,7 @@ popup 自身的时序行为仍只能靠真机验证，`scripts/verify-in-browser
 
 ## 之后（Later）
 
-### 🟡 L1. 移除常驻内容脚本 —— 原型已验证，可实施
+### 🟢 L1. 移除常驻内容脚本 —— 已完成（2026-10）
 
 **现状**：`content/content-script.js` 通过 manifest 的 `content_scripts` 声明，
 在 `<all_urls>` 上以 `document_idle` **注入到你访问的每一个网页**。它每次页面加载
@@ -137,8 +137,20 @@ popup 自身的时序行为仍只能靠真机验证，`scripts/verify-in-browser
 [TESTING.md 第 2.3 节 C](TESTING.md#23-真机验证-scripts)）。但失败原因是
 "document 被替换"，与导航由谁发起无关；而做法 B 是事件驱动的，不依赖导航的发起方。
 
-**下一步**：按做法 B 实施，`verify-in-browser.py` 增加"注入式恢复"的断言，
-并保留现有的 `consumeRestoreState` 路径作为对照直到验证通过。
+**实施结果（已完成）**：
+
+- `manifest.json` 移除 `content_scripts`，删除 `src/content/`；
+- `captureTabState` 与 `restoreTabState` 现在同住 `src/background/tab-state.js`
+  ——**ADR-0004 记录的那处重复彻底消失**，该 ADR 已标记废弃；
+- 恢复改由 `onUpdated (status === 'complete')` → `restoreIntoTab()` 注入，
+  **注入成功后才删除存储条目**，失败重试 3 次，不丢数据；
+- 少一个消息类型（`consumeRestoreState`）与一次消息往返——状态通过 `args`
+  直接交给注入函数；
+- `verify-in-browser.py` 的原有恢复断言（滚动位置、input/textarea/select、
+  一次性消费、不重放）**未改一行**就通过了，因为它们现在测的正是新机制；
+  另加一条断言锁死"manifest 中不得再有 content_scripts"。
+- 权限不变（`<all_urls>` 仍需用于休眠时的采集），安装提示无变化。
+
 ---
 
 ### 🟢 L2. 存储占用与清理策略 —— 已完成（2026-10）
@@ -213,7 +225,7 @@ ID 撞车，把滚动位置/表单内容恢复到无关的页面上。在 `onSta
 ### 🟢 D2. 真机脚本整理与浏览器验证（2026-10）
 
 删除两个不可信的探针脚本，新增可在自动化环境稳定通过的
-`scripts/verify-in-browser.py`（41 项断言），并借它完成了对本轮重构的真机验证：
+`scripts/verify-in-browser.py`（42 项断言），并借它完成了对本轮重构的真机验证：
 弹窗与选项页渲染、状态采集（含密码排除）、唤醒恢复握手。
 过程中还抓出并修复了一个只有端到端运行才会暴露的启动清扫回归。
 详见 [N2](#-n2-整理-scripts-下的真机脚本--已完成2026-10)。
@@ -221,5 +233,5 @@ ID 撞车，把滚动位置/表单内容恢复到无关的页面上。在 `onSta
 ### 🟢 D1. 工程化与缺陷整改（2026-10）
 
 一次完整的系统审计与整改：拆分 1025 行的 Service Worker、修复 5 个阻断级缺陷、
-把测试从 37 项提升到 135 项并迁移到零依赖的 Node 测试运行器、重建打包与校验工具、
+把测试从 37 项提升到 137 项并迁移到零依赖的 Node 测试运行器、重建打包与校验工具、
 补齐治理与架构文档。详见 [AUDIT.md](AUDIT.md) 与 [CHANGELOG](../CHANGELOG.md)。

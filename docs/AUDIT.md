@@ -147,16 +147,16 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | AUD-23 | 无 lint / format 配置                                                                    | 全仓库                                                                                                                                       | ✅ ESLint 10 flat config + Prettier + EditorConfig                             |
 | AUD-24 | 无 CI                                                                                    | 提交 `01df5b6` 移除了 GitHub Actions                                                                                                         | ✅ GitHub Actions（Node 20/22/24 矩阵 + 打包校验 + Release）                   |
 | AUD-25 | 无任何协作治理文件                                                                       | 无 CONTRIBUTING/SECURITY/PRIVACY/CHANGELOG/模板                                                                                              | ✅ 已补齐                                                                      |
-| AUD-26 | 测试质量不足                                                                             | mock 的 `storage.get` 返回**活引用**，导致 `deepEqual(settings, before)` 恒真；`tabs.query` 忽略查询条件；无并发、无设置清洗、无消息路由测试 | ✅ 重建，37 → 135 项断言                                                       |
+| AUD-26 | 测试质量不足                                                                             | mock 的 `storage.get` 返回**活引用**，导致 `deepEqual(settings, before)` 恒真；`tabs.query` 忽略查询条件；无并发、无设置清洗、无消息路由测试 | ✅ 重建，37 → 137 项断言                                                       |
 | AUD-27 | `CLAUDE.md` 是唯一的开发文档                                                             | 面向 AI 的说明同时承担人类开发文档职责                                                                                                       | ✅ 拆为 `AGENTS.md`（AI）+ `docs/DEVELOPMENT.md`（人类），`CLAUDE.md` 仅作指针 |
 
 ### P3 — 建议
 
 | 编号   | 事项                                                                                                                                                           | 处置                                                                                                                   |
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| AUD-28 | `scripts/*.py` 重复实现 + `popup-e2e-probe.py:166` 的 `active_before` 未定义必崩 + `--enable-extensions` 不是有效开关 + `sw-log-probe.py` 失败仍返回 0（假绿） | ✅ 已修：抽出 `_browser.py`，删除两个不可信脚本，新增 41 项断言、退出码可信的 `verify-in-browser.py`；pyflakes 接入 CI |
+| AUD-28 | `scripts/*.py` 重复实现 + `popup-e2e-probe.py:166` 的 `active_before` 未定义必崩 + `--enable-extensions` 不是有效开关 + `sw-log-probe.py` 失败仍返回 0（假绿） | ✅ 已修：抽出 `_browser.py`，删除两个不可信脚本，新增 42 项断言、退出码可信的 `verify-in-browser.py`；pyflakes 接入 CI |
 | AUD-29 | `measure-memory.ps1` 统计机器上所有同族进程，多实例高估；对验收结果无退出码                                                                                    | ✅ 已修：支持 `-Profile` 过滤 + `-MaxWorkingSetGb` 阈值退出码，并补 UTF-8 BOM                                          |
-| AUD-30 | 内容脚本为低频功能在每页常驻                                                                                                                                   | ⏳ ROADMAP L1                                                                                                          |
+| AUD-30 | 内容脚本为低频功能在每页常驻                                                                                                                                   | ✅ 已修：移除常驻内容脚本，改为加载完成后按需注入；ADR-0004 的重复实现随之消失（[ROADMAP L1](ROADMAP.md)）             |
 | AUD-31 | favicon 需一次对外请求，`favicon` 权限 + `_favicon/` 可归零                                                                                                    | ✅ 已修：改用内置 `_favicon/` 端点，对外请求归零；并新增 privacy 校验规则防止回归（[ROADMAP N1](ROADMAP.md)）          |
 | AUD-32 | `docs/STARTUP-SUSPEND-TEST.md` 仅中文；README 声称的能力与实现不符（同 AUD-04）                                                                                | ✅ 文档已更新；测试文档保留中文为主并补英文摘要                                                                        |
 | AUD-33 | `Tab Sleep` 与商店中已有扩展重名，存在检索与商标风险                                                                                                           | ⏳ ROADMAP L5（需所有者决策）                                                                                          |
@@ -171,7 +171,7 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | -------------- | ------------------------------------ | -------------------------------------------------------------------------- |
 | 代码风格       | 无任何强制                           | ESLint 10 + Prettier + `.editorconfig` + CI 门禁                           |
 | 一致性校验     | 一个自身有误报的 i18n 脚本           | `tool/validate.js`：manifest 引用 / 版本 / 多语言 / 消息协议               |
-| 自动化测试     | vitest（24 项）+ 手写脚手架（13 项） | `node:test`（135 项），**零运行时依赖**                                    |
+| 自动化测试     | vitest（24 项）+ 手写脚手架（13 项） | `node:test`（137 项），**零运行时依赖**                                    |
 | CI             | 无                                   | 三版本矩阵 + 打包结构校验 + 打 tag 自动发版                                |
 | 发布           | 三个互相漂移的打包脚本，两个不可用   | 单一纯 Node 打包器，产物结构有 CI 断言                                     |
 | 协作文档       | 只有一份 AI 说明                     | CONTRIBUTING / SECURITY / PRIVACY / CHANGELOG / AGENTS / 模板 / CODEOWNERS |
@@ -187,7 +187,7 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | 静态检查               | `npm run lint`                          | 0 error（整改前 14 error）                       |
 | 一致性校验             | `npm run validate`                      | 0 error / 0 warning                              |
 | 格式化                 | `npm run format:check`                  | 全部符合                                         |
-| 测试                   | `npm test`                              | 135 通过 / 0 失败                                |
+| 测试                   | `npm test`                              | 137 通过 / 0 失败                                |
 | 打包                   | `npm run build`                         | 40 个条目、49 KB、条目位于根目录                 |
 | 打包产物结构           | `Expand-Archive` 解压比对               | 文件列表与 `src/` 完全一致，`manifest.json` 可读 |
 | 扩展更新不触发启动休眠 | `tests/startup-suspend-reload.test.mjs` | 独立进程验证通过                                 |
@@ -199,7 +199,7 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 | `src/` JavaScript 行数 | ~1770                       | 2567（新增 session-store / timers / settings / i18n / dom 等模块与注释） |
 | 最大单文件行数         | 1025（`service-worker.js`） | 330（`popup.js`），入口文件降到 142                                      |
 | `src/` 运行时依赖      | 0                           | 0                                                                        |
-| 测试断言数             | 37                          | 135                                                                      |
+| 测试断言数             | 37                          | 137                                                                      |
 
 **结论：在增加功能（真正的休眠前确认）与文档的同时，最大文件缩小到 1/3，测试覆盖提升 3 倍。**
 
@@ -207,13 +207,13 @@ UI → 消息 → Service Worker → utils → Chrome API 的链路清晰，
 
 ## 8. 剩余风险
 
-| 风险                 | 说明                                                                                | 缓解                                                                 |
-| -------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 真机行为无自动化覆盖 | 页面上下文的滚动/表单恢复、会话恢复时序只能手工验证（`executeScript` 在单测中是桩） | 保留 `scripts/` 冒烟脚本；ROADMAP N2 计划修复并让它们返回退出码      |
-| 启动休眠依赖时序     | 三层机制已覆盖绝大多数情况，但快速恢复 + Worker 冷启动的组合仍有理论空档            | 750ms 周期清扫 + Worker 重启自动恢复；已在 ARCHITECTURE 记为已知限制 |
-| 权限面偏大           | `<all_urls>` 是安装提示与商店审核的主要障碍                                         | ROADMAP N1（favicon 归零对外请求）、L1（移除常驻内容脚本）           |
-| 品牌重名             | 与商店已有扩展同名                                                                  | ROADMAP L5，需所有者决策                                             |
-| 真机脚本质量         | 存在必崩路径与假绿                                                                  | ROADMAP N2                                                           |
+| 风险                 | 说明                                                                                | 缓解                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 真机行为无自动化覆盖 | 页面上下文的滚动/表单恢复、会话恢复时序只能手工验证（`executeScript` 在单测中是桩） | 保留 `scripts/` 冒烟脚本；ROADMAP N2 计划修复并让它们返回退出码              |
+| 启动休眠依赖时序     | 三层机制已覆盖绝大多数情况，但快速恢复 + Worker 冷启动的组合仍有理论空档            | 750ms 周期清扫 + Worker 重启自动恢复；已在 ARCHITECTURE 记为已知限制         |
+| 权限面偏大           | `<all_urls>` 仍需用于休眠时采集页面状态，是安装提示的唯一来源                       | N1 已把对外请求归零、L1 已移除常驻内容脚本；权限本身的进一步最小化见 ROADMAP |
+| 品牌重名             | 与商店已有扩展同名                                                                  | ROADMAP L5，需所有者决策                                                     |
+| 真机脚本质量         | 存在必崩路径与假绿                                                                  | ROADMAP N2                                                                   |
 
 ---
 

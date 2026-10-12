@@ -87,6 +87,13 @@ async def run(args: argparse.Namespace) -> int:
                 manifest = await driver.evaluate("() => chrome.runtime.getManifest()")
                 report.check("manifest loads with a version", bool(manifest.get("version")), manifest.get("version"))
                 report.equal("manifest is MV3", manifest.get("manifest_version"), 3)
+                # ADR-0008: nothing may be injected into every page any more. The
+                # restore script is injected on demand, once a tab has loaded.
+                report.check(
+                    "no permanently-injected content script",
+                    "content_scripts" not in manifest,
+                    str(manifest.get("content_scripts")),
+                )
 
                 # ------------------------------------------------- defaults
                 stored = await driver.evaluate(

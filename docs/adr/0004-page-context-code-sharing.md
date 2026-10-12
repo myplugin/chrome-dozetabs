@@ -1,6 +1,9 @@
 # 0004. 页面上下文与 Service Worker 的代码共享边界
 
-- **状态**：已采纳
+- **状态**：**已废弃（被 [0008](0008-inject-on-demand-instead-of-content-script.md) 取代）**
+- **取代原因**：本 ADR 的前提是"必须常驻一个内容脚本"，因此只能接受一份无法消除的
+  重复实现。[0008](0008-inject-on-demand-instead-of-content-script.md) 通过实测解决了
+  注入时机问题，改用按需注入，那处重复也随之消失。本文保留作为决策历史。
 - **日期**：2026-10-11
 - **影响**：`src/content/content-script.js`、`src/background/tab-state.js`、`manifest.json`
 

@@ -12,7 +12,7 @@ import {
 } from '../utils/storage.js';
 import { addToWhitelist, removeFromWhitelist } from '../utils/whitelist.js';
 import { abortBatch, getBatchStatus, sleepAllOtherTabs } from './batch.js';
-import { consumeRestoreState, sleepTab, wakeTab } from './sleep.js';
+import { sleepTab, wakeTab } from './sleep.js';
 import { adoptStartupWindowFromSession, sweepStartupTabs } from './startup-suspend.js';
 
 /**
@@ -33,12 +33,6 @@ const handlers = {
   [MESSAGE_TYPES.SLEEP_ALL_OTHER]: (payload) => sleepAllOtherTabs(payload.currentTabId),
 
   [MESSAGE_TYPES.WAKE_TAB]: (payload) => wakeTab(payload.tabId),
-
-  [MESSAGE_TYPES.CONSUME_RESTORE_STATE]: async (_payload, sender) => {
-    const tabId = sender && sender.tab ? sender.tab.id : undefined;
-    if (typeof tabId !== 'number') return { state: null };
-    return { state: await consumeRestoreState(tabId) };
-  },
 
   // --- whitelist -----------------------------------------------------------
   [MESSAGE_TYPES.GET_WHITELIST]: async () => ({ whitelist: await getWhitelist() }),

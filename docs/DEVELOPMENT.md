@@ -70,15 +70,15 @@ npm run build          # 打包为 dist/tab-sleep-v<version>.zip
 
 ## 5. MV3 常见陷阱
 
-| 陷阱                        | 表现                          | 正确做法                                                               |
-| --------------------------- | ----------------------------- | ---------------------------------------------------------------------- |
-| Worker 被回收               | 内存里的计数器/计时器神秘归零 | 状态写 `chrome.storage.session`                                        |
-| `setTimeout` 不保证存活     | 长定时器在 Worker 回收后消失  | 关键周期任务用 `chrome.alarms`（最小周期 30s）；短窗口任务要能自我恢复 |
-| `discard()` 拒绝活动标签页  | 休眠当前页静默失败            | 先 `switchAwayFromTab()`                                               |
-| 内容脚本不能 `import`       | `import` 语法报错             | 用消息与 `constants.js` 的字面量对齐（validate 会检查）                |
-| 注入函数不能引用外部变量    | 注入后报 `x is not defined`   | 注入的函数必须完全自包含                                               |
-| `chrome.storage` 并发写覆盖 | 统计数比实际少                | 走 `withStorageLock()`                                                 |
-| 扩展更新会重载 Worker       | 误把"重载"当成"浏览器启动"    | 只认 `chrome.runtime.onStartup`                                        |
+| 陷阱                        | 表现                          | 正确做法                                                                   |
+| --------------------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| Worker 被回收               | 内存里的计数器/计时器神秘归零 | 状态写 `chrome.storage.session`                                            |
+| `setTimeout` 不保证存活     | 长定时器在 Worker 回收后消失  | 关键周期任务用 `chrome.alarms`（最小周期 30s）；短窗口任务要能自我恢复     |
+| `discard()` 拒绝活动标签页  | 休眠当前页静默失败            | 先 `switchAwayFromTab()`                                                   |
+| 注入函数必须自包含          | 注入后报 `x is not defined`   | 注入的函数不能 `import`、不能引用模块变量（`src/background/tab-state.js`） |
+| 注入函数不能引用外部变量    | 注入后报 `x is not defined`   | 注入的函数必须完全自包含                                                   |
+| `chrome.storage` 并发写覆盖 | 统计数比实际少                | 走 `withStorageLock()`                                                     |
+| 扩展更新会重载 Worker       | 误把"重载"当成"浏览器启动"    | 只认 `chrome.runtime.onStartup`                                            |
 
 ## 6. 提交前自查
 

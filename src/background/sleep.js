@@ -19,7 +19,7 @@ import {
 } from '../utils/tab-manager.js';
 import { isEmptyTabPage } from '../utils/whitelist.js';
 import { updateBadge } from './badge.js';
-import { captureTabState } from './tab-state.js';
+import { captureTabState, restoreTabState } from './tab-state.js';
 
 /**
  * Sleep / wake a single tab.
@@ -114,18 +114,36 @@ export async function wakeTab(tabId) {
 }
 
 /**
- * Hand the captured scroll/form state to the page that is waking up, and drop
- * it so a later reload does not replay stale input.
+ * Put a tab's saved state back into its page, then forget it.
+ *
+ * Called when a tab finishes loading. The state is deleted **only after a
+ * successful injection**, so a transient failure loses nothing — the next load
+ * of that tab tries again, and the entry is pruned at browser start regardless.
+ *
  * @param {number} tabId
- * @returns {Promise<Object|null>}
+ * @returns {Promise<boolean>} whether state existed and was applied
  */
-export async function consumeRestoreState(tabId) {
+export async function restoreIntoTab(tabId) {
   const sleepingTabs = await getSleepingTabs();
   const state = sleepingTabs[tabId];
-  if (!state) return null;
+  if (!state) return false;
 
-  await removeSleepingTab(tabId);
-  return state;
+  const attempts = 3;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await executeScript(tabId, restoreTabState, [state]);
+      await removeSleepingTab(tabId);
+      return true;
+    } catch (error) {
+      if (attempt === attempts) {
+        console.warn('[Tab Sleep] Could not restore state into tab', tabId, '-', error.message);
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+  }
+
+  return false;
 }
 
 /**

@@ -11,7 +11,7 @@ import { updateBadge, updateBadgeSoon } from './badge.js';
 import { sleepAllOtherTabs } from './batch.js';
 import { createContextMenus, handleContextMenuClick } from './menus.js';
 import { registerMessageRouter } from './router.js';
-import { forgetTab, pruneSleepingTabs, sleepTab, wakeTab } from './sleep.js';
+import { forgetTab, pruneSleepingTabs, restoreIntoTab, sleepTab, wakeTab } from './sleep.js';
 import {
   handleStartupTabCreated,
   handleStartupTabLoading,
@@ -85,7 +85,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
   await handleStartupTabCreated(tab);
 });
 
-// Badge upkeep + the startup-suspend fallback rule.
+// Badge upkeep, the startup-suspend fallback rule, and wake-up state restore.
 chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' || changeInfo.discarded !== undefined) {
     updateBadgeSoon();
@@ -94,6 +94,13 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
   if (changeInfo.status === 'loading' && tab && !tab.active) {
     await startupSuspendReady;
     await handleStartupTabLoading(tab);
+  }
+
+  // Wake-up restore. It must wait for 'complete': injecting while the document
+  // is still being replaced fails with "Frame with ID 0 was removed" — measured
+  // at 1/25 trying it early versus 25/25 here (docs/ROADMAP.md, L1).
+  if (changeInfo.status === 'complete' && tab) {
+    await restoreIntoTab(tab.id);
   }
 });
 

@@ -157,7 +157,7 @@ is in [docs/STARTUP-SUSPEND-TEST.md](docs/STARTUP-SUSPEND-TEST.md) (Chinese).
 
 ```bash
 npm ci        # installs eslint + prettier only; the test suite needs nothing
-npm run check # what CI runs: format + lint + consistency checks + 135 tests
+npm run check # what CI runs: format + lint + consistency checks + 137 tests
 npm run build # produces dist/tab-sleep-v<version>.zip
 ```
 

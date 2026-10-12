@@ -21,15 +21,16 @@ ADR 告诉你"为什么不选另一条路"——以及在什么条件下应该�
 
 ## 索引
 
-| 编号                                              | 标题                                       | 状态   |
-| ------------------------------------------------- | ------------------------------------------ | ------ |
-| [0001](0001-native-discard-over-placeholder.md)   | 用原生 discard，不做占位页                 | 已采纳 |
-| [0002](0002-no-build-step.md)                     | 不引入构建步骤                             | 已采纳 |
-| [0003](0003-session-storage-for-runtime-state.md) | 运行时状态放入 `chrome.storage.session`    | 已采纳 |
-| [0004](0004-page-context-code-sharing.md)         | 页面上下文与 Service Worker 的代码共享边界 | 已采纳 |
-| [0005](0005-startup-window-owned-by-onstartup.md) | 启动休眠窗口只由 `onStartup` 打开          | 已采纳 |
-| [0006](0006-node-test-runner.md)                  | 测试使用 Node 内置运行器                   | 已采纳 |
-| [0007](0007-in-house-zip-writer.md)               | 打包器自带 ZIP 实现                        | 已采纳 |
+| 编号                                                       | 标题                                       | 状态                   |
+| ---------------------------------------------------------- | ------------------------------------------ | ---------------------- |
+| [0001](0001-native-discard-over-placeholder.md)            | 用原生 discard，不做占位页                 | 已采纳                 |
+| [0002](0002-no-build-step.md)                              | 不引入构建步骤                             | 已采纳                 |
+| [0003](0003-session-storage-for-runtime-state.md)          | 运行时状态放入 `chrome.storage.session`    | 已采纳                 |
+| [0004](0004-page-context-code-sharing.md)                  | 页面上下文与 Service Worker 的代码共享边界 | 已废弃（被 0008 取代） |
+| [0005](0005-startup-window-owned-by-onstartup.md)          | 启动休眠窗口只由 `onStartup` 打开          | 已采纳                 |
+| [0006](0006-node-test-runner.md)                           | 测试使用 Node 内置运行器                   | 已采纳                 |
+| [0007](0007-in-house-zip-writer.md)                        | 打包器自带 ZIP 实现                        | 已采纳                 |
+| [0008](0008-inject-on-demand-instead-of-content-script.md) | 移除常驻内容脚本，改为按需注入             | 已采纳                 |
 
 ## 模板
 
