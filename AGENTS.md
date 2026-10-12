@@ -64,6 +64,12 @@ npm run format         # Prettier 全量格式化
 - `chrome.scripting.executeScript` 在 mock 中是**桩**（没有 DOM），
   页面上下文的行为只能靠真机冒烟测试覆盖：见 [docs/TESTING.md](docs/TESTING.md)。
 - 报告完成前请实际运行 `npm run check` 并给出结果，不要假设它通过。
+- `tool/validate.js` 的 `branch` 段需要知道**默认分支**：本地靠
+  `refs/remotes/<remote>/HEAD`（普通 clone 自带），CI 里靠 `ci.yml` 与
+  `mirror-gitee.yml` 传入的 `DEFAULT_BRANCH`（取自
+  `github.event.repository.default_branch`）。**新增任何会跑 `npm run check` 的工作流，
+  都要一并设这个变量**，否则该段会**静默跳过**而不是失败。
+  注意别改回「枚举分支来判断分支名是否存在」——CI 检出只有一个 ref，那样必然误判。
 
 ## 常见坑
 
