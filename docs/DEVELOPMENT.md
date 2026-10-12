@@ -92,6 +92,31 @@ npm run check
 - 打开一个有 10 个以上标签页的窗口，点一次「休眠其他页」再点一次「刷新」；
 - 点击一个休眠的标签页，确认它恢复了，并且滚动位置还在。
 
+### 本地打包体积和 CI 差几十个字节？
+
+**这几乎总是工作区行尾没有按 `.gitattributes` 归一化**，不是打包器的问题。
+
+`.gitattributes` 要求文本文件在仓库里是 LF（`* text=auto eol=lf`）。但 git 不会
+主动重写一个"看起来没被修改"的工作区文件，所以**在 `.gitattributes` 生效之前就已经
+克隆过**的工作副本里，文件可能仍是 CRLF——`git status` 依然是干净的，因为仓库里的
+blob 的确是 LF，差异只存在于磁盘上。于是 `npm run build` 读工作区时把 CRLF 打进了
+zip，而 Linux 上的 CI 读到的是 LF。
+
+自查：
+
+```bash
+git ls-files --eol | grep 'w/crlf.*eol=lf'   # 有输出即为命中
+```
+
+修正（不改变任何提交内容，只重写工作区文件）：
+
+```bash
+git checkout-index -f -a      # 或者删掉列出来的文件后 git checkout -- <路径>
+```
+
+修正后本地产物应与 Release 附件**逐字节一致**，可用
+`git ls-files --eol` 复核，也可以直接下载 Release 的 zip 逐条目比对哈希。
+
 ## 7. 相关文档
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — 模块职责与关键流程
