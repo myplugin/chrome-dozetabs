@@ -12,6 +12,14 @@ on:
 permissions:
   contents: read
 
+env:
+  # `tool/validate.js` checks that branch names mentioned in the docs really exist.
+  # A CI checkout contains only the single ref it fetched, so it cannot enumerate
+  # branches — this is the ground truth it uses instead. Without it the check
+  # skipped in CI, and a previous design that guessed from the ref list failed
+  # every pull request and every feature-branch push.
+  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

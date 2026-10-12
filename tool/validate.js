@@ -420,14 +420,17 @@ function validateBranches() {
     return;
   }
 
+  const fallback = defaultBranch();
   const known = knownBranches();
-  if (known === null) {
+
+  if (fallback === null && known === null) {
     notes.push('branch: skipped (this checkout cannot tell which branches exist)');
     return;
   }
 
   for (const [branch, file] of referenced) {
-    if (!known.has(branch)) {
+    const ok = branch === fallback || (known !== null && known.has(branch));
+    if (!ok) {
       fail(
         'branch',
         `${file} names the branch "${branch}", which does not exist in this repository`
@@ -439,28 +442,63 @@ function validateBranches() {
 }
 
 /**
- * The set of branch names this checkout can be *trusted* to know about, or null
- * when it cannot answer the question at all.
+ * The repository's default branch as this checkout knows it, or null.
  *
- * This rule compares documented branch names against reality, so it needs a
- * complete picture of reality — and a CI pull-request checkout does not have one.
- * `actions/checkout` fetches only the PR merge ref, so the default branch is
- * simply absent and **every** reference looks wrong. That is not hypothetical:
- * this rule shipped once and immediately failed the first Dependabot PR with
- * `.github/ISSUE_TEMPLATE/config.yml names the branch "master", which does not
- * exist in this repository` — i.e. it would have blocked every contribution.
+ * Two sources, in order of authority:
  *
- * So the evidence is restricted to *remote-tracking* branches of *configured
- * remotes*: that is what a normal clone has and a PR checkout does not. Local
- * heads are deliberately excluded, because a PR checkout that happens to carry a
- * local branch must not be able to make the rule look authoritative.
- * @returns {Set<string>|null}
+ * 1. **`DEFAULT_BRANCH`** — CI passes `github.event.repository.default_branch`.
+ *    A CI checkout fetches a *single* ref, so its branch list is useless for
+ *    deciding anything, but this value is exactly the ground truth the rule needs.
+ * 2. **`refs/remotes/<remote>/HEAD`** — the symref a normal `git clone` sets.
+ *    Absent in CI checkouts and in `git init` repositories, which is precisely why
+ *    it is a usable signal for "this is a real clone".
+ *
+ * Enumerating branches is deliberately *not* the primary evidence. It was, and it
+ * broke CI twice in a row: a CI checkout contains only the ref it fetched, so
+ * `master` looked like a name that "does not exist" on every pull request **and**
+ * on every push to a feature branch — the rule would have blocked all
+ * contributions while passing locally, where a full clone masks the problem.
+ * A gate that cannot be certain must not fail.
+ * @returns {string|null}
  */
-function knownBranches() {
-  const remotes = (git(['remote']) || '')
+function defaultBranch() {
+  const fromEnv = (process.env.DEFAULT_BRANCH || '').trim();
+  if (fromEnv) return fromEnv;
+
+  const remotes = configuredRemotes();
+  const refs = git(['for-each-ref', '--format=%(refname:short) %(symref)', 'refs/remotes']);
+
+  for (const line of (refs || '').split('\n')) {
+    const [name, symref] = line.trim().split(/\s+/);
+    if (!symref) continue;
+    const remote = (name || '').match(/^([^/]+)\/HEAD$/);
+    if (!remote || !remotes.includes(remote[1])) continue;
+    const target = symref.match(/^refs\/remotes\/[^/]+\/(.+)$/);
+    if (target) return target[1];
+  }
+
+  return null;
+}
+
+/** @returns {string[]} configured remote names */
+function configuredRemotes() {
+  return (git(['remote']) || '')
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+/**
+ * Remote-tracking branches of *configured* remotes — i.e. the branches this
+ * checkout can be trusted to know about, or null when it cannot answer at all.
+ *
+ * Used to accept legitimate references to a *non-default* branch (say a long-lived
+ * `blob/release-1.x/` link). It is never used on its own to conclude that a branch
+ * is missing; see `defaultBranch()` for why.
+ * @returns {Set<string>|null}
+ */
+function knownBranches() {
+  const remotes = configuredRemotes();
   if (remotes.length === 0) return null;
 
   const refs = git(['for-each-ref', '--format=%(refname)', 'refs/remotes']);
