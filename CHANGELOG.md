@@ -19,8 +19,8 @@
   `github.com/myplugin/chrome-tab-sleep` 与对应的 REST API 都返回 404，而仓库确实
   存在于该路径下（能推送、`git ls-remote` 有响应）——是可见性设置，不是路径写错。
   已改为如实描述，并写清后果：`.github/` 下的 issue 模板与其中的链接，外部贡献者
-  **看不到也点不开**，面向外部的交流事实上全部发生在 Gitee。是否把 GitHub 转为 public
-  属于所有者决策，已在 `docs/RELEASING.md` 与 ROADMAP L5 中登记。
+  **看不到也点不开**，面向外部的交流事实上全部发生在 Gitee。**该问题随后已由所有者
+  在仓库设置中改为 public 彻底解决**，见下方「仓库公开与改名」。
 - **`docs/RELEASING.md` 写死了维护者的本机环境信息**：原文把 SSH key 文件名
   （含机器名）与主机别名当作通用指引写给所有读者——这些路径对别人毫无意义，
   且会随仓库公开而暴露维护者的环境细节。现改为通用示例（`github-myaccount`），
@@ -28,6 +28,31 @@
   真正的知识点，把每台机器各自的配置交回 `~/.ssh/config`。
   （公开前的整仓库扫描确认：历史 56 个提交中无密钥/令牌，两个作者邮箱均为
   noreply 地址，无本机绝对路径。）
+- **`branch` 校验段会误杀所有 PR（自行引入的回归）**：该段把文档里出现的分支名与仓库
+  真实存在的分支比对，却拿 `refs/heads` + `refs/remotes` 的全量当依据——而
+  `actions/checkout` 在 `pull_request` 事件下**只取 PR 的 merge ref**，`master` 根本
+  不在其中，于是每一条本来正确的分支引用都被判成「不存在」。已实测复现：在只含
+  `refs/remotes/pull/4/merge` 的检出里直接
+  `FAIL .github/ISSUE_TEMPLATE/config.yml names the branch "master"`——也就是说，
+  它会拦住**每一个**贡献者的 PR，而本地完整克隆里一切正常，所以极易漏检。
+  现改为只以「**已配置 remote 的远端跟踪分支**」为证据：正常克隆有、PR 检出没有，
+  于是后者**跳过并说明原因**，而不是拿不完整的信息去猜。检测能力未被削弱——
+  在完整克隆里注入 `main` 仍然失败。
+
+### 变更
+
+- **GitHub 仓库已由所有者改为 public，并改名为 `chrome-dozetabs`**（原名
+  `chrome-tab-sleep`）。后果：
+  - `.github/` 下的 issue 模板、PR 模板、CODEOWNERS、Dependabot 与 Actions
+    对所有人可见并开始生效；三个对外联系链接已实测匿名返回 200；
+  - 仓库一旦公开即应视为**准单向操作**——技术上可改回 private，但代码可能已被
+    fork、被搜索引擎与第三方镜像缓存，改回去也收不回来；
+  - **Gitee 侧没有改名**，仍是 `xplugins/chrome-tab-sleep`。两个平台因此有了不同的
+    仓库名，`docs/RELEASING.md` 的 remote 表已按实际情况分别记录；
+  - 公开仓库的 Actions 标准运行器不再消耗私有仓库的计费额度。
+- `v1.1.0` 的 Release 已由 `release.yml` 自动创建，并附带
+  `dozetabs-v1.1.0.zip`（51.26 KB）——这也顺带确认了此前无法核实的那次发布工作流
+  确实跑成功了。
 
 ### 工程化
 
@@ -201,6 +226,6 @@
 - 中英文国际化、右键菜单、`Alt+S` / `Alt+Shift+S` 快捷键、图标角标计数
 - 打包脚本与三层测试（单元 / 逻辑 / 真机冒烟）
 
-[Unreleased]: https://github.com/myplugin/chrome-tab-sleep/compare/v1.1.0...HEAD
-[1.1.0]: https://github.com/myplugin/chrome-tab-sleep/releases/tag/v1.1.0
-[1.0.0]: https://github.com/myplugin/chrome-tab-sleep/releases/tag/v1.0.0
+[Unreleased]: https://github.com/myplugin/chrome-dozetabs/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/myplugin/chrome-dozetabs/releases/tag/v1.1.0
+[1.0.0]: https://github.com/myplugin/chrome-dozetabs/releases/tag/v1.0.0

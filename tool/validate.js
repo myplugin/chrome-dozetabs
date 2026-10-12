@@ -420,19 +420,9 @@ function validateBranches() {
     return;
   }
 
-  const refs = git(['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']);
-  const known = new Set();
-  for (const ref of (refs || '').split('\n')) {
-    const name = ref.trim();
-    if (!name || name === 'refs/remotes/origin/HEAD') continue;
-    const local = name.match(/^refs\/heads\/(.+)$/);
-    if (local) known.add(local[1]);
-    const remote = name.match(/^refs\/remotes\/[^/]+\/(.+)$/);
-    if (remote && remote[1] !== 'HEAD') known.add(remote[1]);
-  }
-
-  if (known.size === 0) {
-    notes.push('branch: skipped (no local or remote branches to compare against)');
+  const known = knownBranches();
+  if (known === null) {
+    notes.push('branch: skipped (this checkout cannot tell which branches exist)');
     return;
   }
 
@@ -446,6 +436,45 @@ function validateBranches() {
   }
 
   notes.push(`branch: ${referenced.size} reference(s) point at existing branches`);
+}
+
+/**
+ * The set of branch names this checkout can be *trusted* to know about, or null
+ * when it cannot answer the question at all.
+ *
+ * This rule compares documented branch names against reality, so it needs a
+ * complete picture of reality — and a CI pull-request checkout does not have one.
+ * `actions/checkout` fetches only the PR merge ref, so the default branch is
+ * simply absent and **every** reference looks wrong. That is not hypothetical:
+ * this rule shipped once and immediately failed the first Dependabot PR with
+ * `.github/ISSUE_TEMPLATE/config.yml names the branch "master", which does not
+ * exist in this repository` — i.e. it would have blocked every contribution.
+ *
+ * So the evidence is restricted to *remote-tracking* branches of *configured
+ * remotes*: that is what a normal clone has and a PR checkout does not. Local
+ * heads are deliberately excluded, because a PR checkout that happens to carry a
+ * local branch must not be able to make the rule look authoritative.
+ * @returns {Set<string>|null}
+ */
+function knownBranches() {
+  const remotes = (git(['remote']) || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (remotes.length === 0) return null;
+
+  const refs = git(['for-each-ref', '--format=%(refname)', 'refs/remotes']);
+
+  const known = new Set();
+  for (const ref of (refs || '').split('\n')) {
+    const match = ref.trim().match(/^refs\/remotes\/([^/]+)\/(.+)$/);
+    if (!match) continue;
+    if (!remotes.includes(match[1])) continue; // e.g. refs/remotes/pull/4/merge
+    if (match[2] === 'HEAD') continue;
+    known.add(match[2]);
+  }
+
+  return known.size > 0 ? known : null;
 }
 
 // ---------------------------------------------------------------------------

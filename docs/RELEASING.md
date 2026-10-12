@@ -77,17 +77,25 @@ git push origin master --tags
 
 ## 6. 仓库拓扑与同步
 
-**Gitee 是主开发平台，GitHub 是私有镜像。两个平台的默认分支都是 `master`。**
+**Gitee 是主开发平台，GitHub 是公开镜像。两个平台的默认分支都是 `master`。**
 
-> **GitHub 仓库当前是私有的。** 未认证访问 `github.com/myplugin/chrome-tab-sleep` 与
-> 对应的 REST API 都返回 404，而仓库确实存在于该路径下（能推送、`git ls-remote` 有
-> 响应），所以这是可见性设置，不是路径写错。**因此对外可见的仓库只有 Gitee**；
-> GitHub 那一侧目前只承担三件事：跑 CI、定时同步备份、存放 Release 产物。
+> **两个平台的仓库名不同**（Gitee 未跟随 GitHub 改名）：
 >
-> 这个事实有一个必须说清楚的后果：`.github/` 下的 issue 模板、以及它们里面的链接，
-> **外部贡献者看不到、也点不开**——面向外部的交流事实上全部发生在 Gitee。
-> 若要让 GitHub 真正成为公开镜像，需要在仓库设置里改为 public，这是一次所有者操作
-> （见 [ROADMAP.md L5](ROADMAP.md)）。
+> | 平台   | 仓库                        | 可见性 |
+> | ------ | --------------------------- | ------ |
+> | Gitee  | `xplugins/chrome-tab-sleep` | 公开   |
+> | GitHub | `myplugin/chrome-dozetabs`  | 公开   |
+>
+> GitHub 原名 `chrome-tab-sleep`，已随产品更名为 Dozetabs 一并改为 `chrome-dozetabs`；
+> Gitee 侧保持原名。**GitHub 会对旧地址 301 重定向**，所以旧链接暂时不会立即失效，
+> 但不要再写旧地址——本文档与 `.github/` 中的链接均已更新为新名。
+>
+> GitHub 仓库已于 2026-10-13 由所有者改为 **public**。此前它是私有的，导致
+> `.github/` 下的 issue 模板与其中的链接对外部贡献者**看不到也点不开**；现在这条限制
+> 已解除（三个对外联系链接已实测匿名返回 200）。
+>
+> 注意**公开是准单向操作**：技术上可以改回 private，但代码可能已被 fork、被搜索引擎
+> 与第三方镜像缓存，改回去也收不回来。
 
 本文档、`.github/` 配置与各处链接均按 `master` 书写，`npm run validate` 的 `branch`
 段会核对它们指向的分支是否真实存在——写成 `main` 这类不存在的分支名会直接让校验失败，
@@ -100,10 +108,10 @@ git push origin master --tags
 **「默认分支」是仓库属性，`git` 做不到**，只能在两个平台的仓库设置里各自操作；
 并须同步本文档、`.github/ISSUE_TEMPLATE/config.yml` 与 `CONTRIBUTING.md` 的分支引用。
 
-| remote   | 地址                                           | 角色                                |
-| -------- | ---------------------------------------------- | ----------------------------------- |
-| `origin` | `git@gitee.com:xplugins/chrome-tab-sleep.git`  | 主开发仓库（对外可见，日常推送/PR） |
-| `github` | `git@github.com:myplugin/chrome-tab-sleep.git` | 私有镜像（CI + 备份，外部不可见）   |
+| remote   | 地址                                          | 角色                              |
+| -------- | --------------------------------------------- | --------------------------------- |
+| `origin` | `git@gitee.com:xplugins/chrome-tab-sleep.git` | 主开发仓库（日常推送、issue、PR） |
+| `github` | `git@github.com:myplugin/chrome-dozetabs.git` | 公开镜像（CI + 备份 + Release）   |
 
 > **维护者本机的 remote 地址可能与上表不同**：`github.com:22` 在部分网络下会被
 > 概率性阻断，官方解法是改走 `ssh.github.com:443`。维护者用 `~/.ssh/config` 里的
@@ -127,8 +135,8 @@ git push origin master --tags
 > 以自己的 `~/.ssh/config` 为准；推送前自检 `ssh -T git@<你的别名>`，
 > 看到 `Hi <你的用户名>!` 即通了。
 
-表中 `github-pycv` 是**维护者本机** `~/.ssh/config` 里的别名。没有这份配置的机器，
-直接用官方地址即可：`git@github.com:myplugin/chrome-tab-sleep.git`。
+表中 `github` 的别名部分以本机 `~/.ssh/config` 为准；没有别名配置的机器直接用
+官方地址 `git@github.com:myplugin/chrome-dozetabs.git` 即可。
 
 ### 日常推送
 
@@ -182,7 +190,8 @@ fatal: Could not read from remote repository.
 2. **因此 `ci.yml` 只在直接向 GitHub 推送或提 PR 时运行。** 由于日常工作发生在
    Gitee，日常的自动化结论实际来自同步工作流那一次运行。
 
-若 Gitee 仓库是私有的，在 GitHub 仓库里加一个 `GITEE_TOKEN` secret（具有读取权限即可），
+**Gitee 仓库是公开的**，所以同步工作流读取它不需要任何凭据。若将来改为私有，
+需要在 GitHub 仓库里加一个 `GITEE_TOKEN` secret（具有读取权限即可），
 同步工作流会自动使用它。
 
 ### Gitee 侧的 CI
@@ -201,5 +210,7 @@ GitHub Release 由 `.github/workflows/release.yml` 生成。注意它的触发�
 打 tag 推送或手动 `workflow_dispatch`：**同步工作流推送的 tag 不会自动触发它**
 （原因见上面的第 1 条限制）。发版时在 GitHub 的 Actions 页面手动触发一次即可。
 
-> **注意 GitHub 仓库是私有的**：Release 产物只有仓库成员能看到。对外分发应走 Gitee
-> 的发行版页面，或直接提供 `dist/dozetabs-v<version>.zip`。
+> **Gitee 侧的发行版需要手动上传**：GitHub 的 Release 由上述工作流自动创建并附上 zip，
+> 而 Gitee 没有配置 CI（见上一节），因此发版后请到 Gitee 的「发行版」页面手动新建，
+> 上传同一份 `dist/dozetabs-v<version>.zip`，说明文字可直接复制 `CHANGELOG.md`
+> 对应小节。

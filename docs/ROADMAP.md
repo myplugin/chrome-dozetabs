@@ -216,14 +216,18 @@ Gitee Go 的配置语法与 Actions 完全不同，等于要额外维护第二�
 就要面对老用户认不出、商店条目历史断裂、外部链接失效。所以这类决策
 **越早做越便宜**——这正是趁未发布先改掉的原因。
 
-**未改**：Gitee / GitHub 的仓库名仍是 `chrome-tab-sleep`，remote 与 CI 不受影响。
-如需一并改名，在仓库设置里操作后执行 `git remote set-url` 即可。
+**仓库改名（2026-10-13 更新）**：GitHub 侧已随产品改名为 **`chrome-dozetabs`**，
+并同时由 private 改为 **public**；**Gitee 侧保持 `chrome-tab-sleep` 不变**。
+两个平台的仓库名因此不同，已在
+[RELEASING.md 第 6 节](RELEASING.md#6-仓库拓扑与同步)按实际情况分别记录。
 
-**仓库改名暂缓（2026-10-13 决定）**：仓库仍叫 `chrome-tab-sleep`。改名要在 Gitee 与
-GitHub 的仓库设置里各自操作一次，并牵动 remote 地址、`docs/RELEASING.md` 的 remote 表、
-`.github/ISSUE_TEMPLATE/config.yml` 的三个链接与 `CHANGELOG.md` 的对比链接。
-趁现在没有外部引用去改是最便宜的时机，但那仍是一次需要所有者动手的多处协同操作，
-因此推迟到需要时再做——**代价是这条成本曲线会随时间变陡，这是明知而接受的**。
+连带同步并实测过的地方：`.github/ISSUE_TEMPLATE/config.yml` 的三个对外链接、
+`CHANGELOG.md` 的对比链接与 Release 链接——均匿名返回 200。GitHub 对旧地址会做
+301 重定向，所以旧链接短时间内不会立即失效，但不应该再写旧地址。
+
+若日后要把 Gitee 也改成 `dozetabs` 系列名，同一次改名会牵动 remote 地址、
+`docs/RELEASING.md` 的 remote 表、`mirror-gitee.yml` 的 `GITEE_REPO` 常量与
+`.github/ISSUE_TEMPLATE/config.yml` 的链接——**成本随时间上升，这是明知而接受的**。
 
 ---
 
