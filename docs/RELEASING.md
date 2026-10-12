@@ -77,17 +77,33 @@ git push origin master --tags
 
 ## 6. 仓库拓扑与同步
 
-**Gitee 是主开发平台，GitHub 是公开镜像。两个平台的默认分支都是 `master`。**
+**Gitee 是主开发平台，GitHub 是私有镜像。两个平台的默认分支都是 `master`。**
+
+> **GitHub 仓库当前是私有的。** 未认证访问 `github.com/myplugin/chrome-tab-sleep` 与
+> 对应的 REST API 都返回 404，而仓库确实存在于该路径下（能推送、`git ls-remote` 有
+> 响应），所以这是可见性设置，不是路径写错。**因此对外可见的仓库只有 Gitee**；
+> GitHub 那一侧目前只承担三件事：跑 CI、定时同步备份、存放 Release 产物。
+>
+> 这个事实有一个必须说清楚的后果：`.github/` 下的 issue 模板、以及它们里面的链接，
+> **外部贡献者看不到、也点不开**——面向外部的交流事实上全部发生在 Gitee。
+> 若要让 GitHub 真正成为公开镜像，需要在仓库设置里改为 public，这是一次所有者操作
+> （见 [ROADMAP.md L5](ROADMAP.md)）。
 
 本文档、`.github/` 配置与各处链接均按 `master` 书写，`npm run validate` 的 `branch`
 段会核对它们指向的分支是否真实存在——写成 `main` 这类不存在的分支名会直接让校验失败，
 而不是等到有人点开一个 404 链接、或照抄的命令报
 `src refspec main does not match any` 时才发现。
 
-| remote   | 地址                                            | 角色                              |
-| -------- | ----------------------------------------------- | --------------------------------- |
-| `origin` | `git@gitee.com:xplugins/chrome-tab-sleep.git`   | 主开发仓库（日常推送、issue、PR） |
-| `github` | `git@github-pycv:myplugin/chrome-tab-sleep.git` | 公开镜像（定时同步 + CI 结果）    |
+**默认分支名已决定保持 `master`，不改名为 `main`（2026-10-13）**：Gitee 是主开发平台，
+它的默认分支就是 `master`，而 GitHub 只是镜像；为迁就镜像平台的命名习惯去改动主平台的
+默认分支，收益不抵一次「两个远端默认分支短暂不一致」的窗口。若将来仍要改，注意
+**「默认分支」是仓库属性，`git` 做不到**，只能在两个平台的仓库设置里各自操作；
+并须同步本文档、`.github/ISSUE_TEMPLATE/config.yml` 与 `CONTRIBUTING.md` 的分支引用。
+
+| remote   | 地址                                            | 角色                                |
+| -------- | ----------------------------------------------- | ----------------------------------- |
+| `origin` | `git@gitee.com:xplugins/chrome-tab-sleep.git`   | 主开发仓库（对外可见，日常推送/PR） |
+| `github` | `git@github-pycv:myplugin/chrome-tab-sleep.git` | 私有镜像（CI + 备份，外部不可见）   |
 
 > **为什么用 `github-pycv` 而不是 `github.com`**：`~/.ssh/config` 里为 pycv 账户配了
 > 专用别名（`Host github-pycv` + `IdentityFile ~/.ssh/id_ed25519_github_asuspc_pycv`），
@@ -152,12 +168,19 @@ fatal: Could not read from remote repository.
 
 ### Gitee 侧的 CI
 
-未配置。你选择用 GitHub Actions 作为免费校验，Gitee 侧不做门禁。
-若以后需要 Gitee 提交/PR 的实时门禁，需要新增 Gitee Go 的 `.workflow/*.yml`
-（语法与 Actions 完全不同），详见 [ROADMAP.md](ROADMAP.md)。
+**已决定不做（2026-10-13）。** CI 只跑在 GitHub Actions，Gitee 侧不设门禁。
+
+Gitee Go 的配置语法与 Actions 完全不同，等于要额外维护第二套**无法在本地验证**的
+流水线；在仓库还没有外部贡献者的时候，这份维护成本换不到任何东西。
+
+**触发重新考虑的条件**：Gitee 上出现真实的外部 PR、需要提交门禁时再做。
+届时是**重写**配置而不是复用。详见 [ROADMAP.md L4](ROADMAP.md)。
 
 ### 发布
 
 GitHub Release 由 `.github/workflows/release.yml` 生成。注意它的触发方式是
 打 tag 推送或手动 `workflow_dispatch`：**同步工作流推送的 tag 不会自动触发它**
 （原因见上面的第 1 条限制）。发版时在 GitHub 的 Actions 页面手动触发一次即可。
+
+> **注意 GitHub 仓库是私有的**：Release 产物只有仓库成员能看到。对外分发应走 Gitee
+> 的发行版页面，或直接提供 `dist/dozetabs-v<version>.zip`。

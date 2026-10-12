@@ -190,11 +190,15 @@ ID 撞车，把滚动位置/表单内容恢复到无关的页面上。在 `onSta
 
 ---
 
-### 🔵 L4. Gitee 镜像的 CI
+### ⛔ L4. Gitee 镜像的 CI —— 已决定不做（2026-10-13）
 
-当前 CI 只跑在 GitHub Actions。若 Gitee 侧需要门禁，需要新增一份 Gitee Go 配置
-（语法与 Actions 不同）。**在有实际使用者之前不引入无法验证的配置**
-（见 [RELEASING.md 第 6 节](RELEASING.md#6-gitee-镜像)）。
+CI 只跑在 GitHub Actions，Gitee 侧不设门禁。
+
+Gitee Go 的配置语法与 Actions 完全不同，等于要额外维护第二套**无法在本地验证**
+的流水线；在仓库还没有外部贡献者的时候，这份维护成本换不到任何东西。
+
+**触发重新考虑的条件**：Gitee 上出现真实的外部 PR、需要提交门禁时再做。
+届时是**重写**配置而不是复用（见 [RELEASING.md 第 6 节](RELEASING.md#6-gitee-镜像)）。
 
 ---
 
@@ -215,7 +219,11 @@ ID 撞车，把滚动位置/表单内容恢复到无关的页面上。在 `onSta
 **未改**：Gitee / GitHub 的仓库名仍是 `chrome-tab-sleep`，remote 与 CI 不受影响。
 如需一并改名，在仓库设置里操作后执行 `git remote set-url` 即可。
 
-**仓库改名与否仍属于项目所有者的决策。**
+**仓库改名暂缓（2026-10-13 决定）**：仓库仍叫 `chrome-tab-sleep`。改名要在 Gitee 与
+GitHub 的仓库设置里各自操作一次，并牵动 remote 地址、`docs/RELEASING.md` 的 remote 表、
+`.github/ISSUE_TEMPLATE/config.yml` 的三个链接与 `CHANGELOG.md` 的对比链接。
+趁现在没有外部引用去改是最便宜的时机，但那仍是一次需要所有者动手的多处协同操作，
+因此推迟到需要时再做——**代价是这条成本曲线会随时间变陡，这是明知而接受的**。
 
 ---
 

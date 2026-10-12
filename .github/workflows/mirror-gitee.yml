@@ -1,8 +1,9 @@
 name: Mirror from Gitee
 
-# Gitee is the primary development platform for this project; GitHub is the
-# public mirror. Gitee's own mirror feature would need an account binding, so the
-# sync runs here instead, on a schedule.
+# Gitee is the primary (and currently only publicly visible) development platform
+# for this project; GitHub is a private mirror that exists for CI and backup, so
+# this sync is really a one-way backup rather than publication. Gitee's own mirror
+# feature would need an account binding, so the sync runs here instead, on a schedule.
 #
 # Note: refs pushed with the workflow's own GITHUB_TOKEN do NOT trigger other
 # workflows (GitHub suppresses that to avoid recursion), so this job runs the
