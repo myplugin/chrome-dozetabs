@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS, MESSAGE_TYPES } from '../utils/constants.js';
 import { escapeHtml, showToast } from '../utils/dom.js';
 import { applyTranslations, t } from '../utils/i18n.js';
 import { isTabSleeping } from '../utils/tab-manager.js';
+import { countSleepingTabs, waitForTab, waitForTabs } from '../utils/tab-wait.js';
 import {
   extractDomain,
   isChromeInternalPage,
@@ -87,9 +88,8 @@ async function loadSettings() {
   }
 }
 
-async function loadTabs(delay = 0, preserveScroll = false) {
+async function loadTabs({ preserveScroll = false } = {}) {
   try {
-    if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
     if (!preserveScroll) tabsListEl.innerHTML = `<div class="loading">${t('loading')}</div>`;
 
     allTabs = await chrome.tabs.query({ currentWindow: true });
@@ -266,7 +266,9 @@ async function onSleepTab(tabId) {
     const result = await sendMessage({ type: MESSAGE_TYPES.SLEEP_TAB, payload: { tabId } });
     if (result?.success) {
       showToast(t('tabSlept'), 'success');
-      await loadTabs(150);
+      // Wait for the discard to actually land instead of sleeping blindly.
+      await waitForTab(tabId, isTabSleeping);
+      await loadTabs();
     } else {
       showToast(reasonText(result?.reason || result?.error), 'error');
     }
@@ -285,7 +287,8 @@ async function onWakeTab(tabId) {
     const result = await sendMessage({ type: MESSAGE_TYPES.WAKE_TAB, payload: { tabId } });
     if (result?.success) {
       showToast(t('tabWoken'), 'success');
-      await loadTabs(150);
+      await waitForTab(tabId, (tab) => !isTabSleeping(tab));
+      await loadTabs();
     } else {
       showToast(reasonText(result?.reason || result?.error), 'error');
     }
@@ -299,7 +302,7 @@ async function onToggleLock(tabId, shouldLock) {
     const type = shouldLock ? MESSAGE_TYPES.LOCK_TAB : MESSAGE_TYPES.UNLOCK_TAB;
     await sendMessage({ type, payload: { tabId } });
     showToast(shouldLock ? t('tabLocked') : t('tabUnlocked'), 'success');
-    await loadTabs(0, true);
+    await loadTabs({ preserveScroll: true });
   } catch {
     showToast(t('failedToLockTab'), 'error');
   }
@@ -326,6 +329,9 @@ sleepOtherTabsBtn.addEventListener('click', async () => {
 
   updateSleepAllButton(true);
 
+  // Remember how many were asleep so we can tell when the batch has landed.
+  const sleepingBefore = countSleepingTabs(allTabs);
+
   try {
     const result = await sendMessage({
       type: MESSAGE_TYPES.SLEEP_ALL_OTHER,
@@ -334,9 +340,11 @@ sleepOtherTabsBtn.addEventListener('click', async () => {
 
     if (result?.aborted) {
       showToast(t('batchAborted'));
+      await loadTabs();
     } else if (typeof result?.slept === 'number') {
       showToast(t('tabsSlept', [String(result.slept), String(result.skipped)]), 'success');
-      await loadTabs(150);
+      await waitForTabs((tabs) => countSleepingTabs(tabs) >= sleepingBefore + result.slept);
+      await loadTabs();
     } else {
       showToast(reasonText(result?.reason || result?.error), 'error');
       await loadTabs();
