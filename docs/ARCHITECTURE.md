@@ -104,6 +104,7 @@ src/
 │   ├── storage.js             chrome.storage.local + 按键串行化
 │   ├── session-store.js       chrome.storage.session（带内存降级）
 │   ├── tab-manager.js         chrome.tabs 包装 + canSleepTab 判定
+│   ├── tab-wait.js            弹窗用的有界轮询（等待真实状态变化，不靠固定延时）
 │   ├── whitelist.js           域名匹配 / 内部页 / 空标签页（唯一实现）
 │   ├── settings.js            sanitizeSettings：不可信设置的清洗
 │   ├── i18n.js                t() 与 applyTranslations()

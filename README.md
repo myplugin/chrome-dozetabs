@@ -137,7 +137,7 @@ git clone <repo> && cd tab-sleep
 
 ```bash
 npm ci        # 只装 eslint / prettier；测试零依赖
-npm run check # 提交前必跑：格式 + lint + 一致性校验 + 120 项测试
+npm run check # 提交前必跑：格式 + lint + 一致性校验 + 129 项测试
 npm run build # 产出 dist/tab-sleep-v<version>.zip
 ```
 

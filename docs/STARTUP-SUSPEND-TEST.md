@@ -25,7 +25,7 @@
 并直接驱动它注册的监听器与消息处理器：
 
 ```bash
-npm test                    # 全部 120 项断言
+npm test                    # 全部 129 项断言
 npm run test:startup        # 只跑启动休眠相关的两组
 ```
 
@@ -144,7 +144,7 @@ Reloading or updating the extension never fires `onStartup`, so it can never
 mass-discard your background tabs; `tests/startup-suspend-reload.test.mjs` guards
 that invariant in its own process.
 
-Automated coverage: `npm test` (120 assertions) and `npm run test:startup`.
+Automated coverage: `npm test` (129 assertions) and `npm run test:startup`.
 The real-browser scripts under `scripts/` currently have known defects (see
 [ROADMAP N2](ROADMAP.md)) — do not treat their exit codes as acceptance evidence
 until that is fixed. The manual 200-tab A/B procedure above remains the source of

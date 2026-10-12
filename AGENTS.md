@@ -17,7 +17,7 @@ Tab Sleep 是一个 Chrome/Edge **Manifest V3 扩展**，用 Chrome 原生的
 ```bash
 npm ci                 # 仅安装 eslint / prettier（测试零依赖）
 npm run check          # 提交前必跑：格式 + lint + manifest/多语言/协议校验 + 测试
-npm test               # node:test 测试套件（120 项断言）
+npm test               # node:test 测试套件（129 项断言）
 npm run test:startup   # 只跑启动休眠相关的两组测试
 npm run validate       # 只跑一致性校验
 npm run lint:py        # 检查 scripts/*.py（需 pip install -r scripts/requirements-dev.txt）
