@@ -8,7 +8,19 @@
 
 ## [Unreleased]
 
-无。
+### 修复
+
+- **ADR-0004 里有一条失效链接**：它仍指向 `src/content/content-script.js`，而该文件
+  已在 ADR-0008 中被删除。ADR 正文作为决策历史保留（不重写），但链接改为纯文本并
+  注明「该文件已删除」，避免读者点进一个空响应。
+- **`[Unreleased]` 的对比链接仍指向 `v1.0.0`**，且缺少 `[1.1.0]` 链接定义。
+  发布 1.1.0 时漏改，现已补齐。（只影响仓库文档，不进打包产物。）
+
+### 工程化
+
+- `tool/validate.js` 新增第 6 个校验段 `links`：解析全部 Markdown 的相对链接
+  （26 个文件、133 条）并检查目标文件是否存在。外部 URL **刻意不抓取**——
+  会联网的校验器在网络不通时会失败，而 `npm run validate` 必须能离线运行。
 
 ## [1.1.0] - 2026-10-13
 
@@ -176,5 +188,6 @@
 - 中英文国际化、右键菜单、`Alt+S` / `Alt+Shift+S` 快捷键、图标角标计数
 - 打包脚本与三层测试（单元 / 逻辑 / 真机冒烟）
 
-[Unreleased]: https://github.com/myplugin/chrome-tab-sleep/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/myplugin/chrome-tab-sleep/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/myplugin/chrome-tab-sleep/releases/tag/v1.1.0
 [1.0.0]: https://github.com/myplugin/chrome-tab-sleep/releases/tag/v1.0.0

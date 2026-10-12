@@ -33,9 +33,9 @@
 - **采集**收敛到一个自包含函数：
   [`src/background/tab-state.js`](../../src/background/tab-state.js) 的
   `captureTabState(saveScroll, saveForm)`。文件头明确写出"必须自包含"的约束。
-- **恢复**只保留在
-  [`src/content/content-script.js`](../../src/content/content-script.js) 中，
-  并压缩到最小实现（约 60 行，含注释）。
+- **恢复**只保留在 `src/content/content-script.js` 中（该文件已在
+  [0008](0008-inject-on-demand-instead-of-content-script.md) 中删除，此处仅作历史引用，
+  故不再做成链接），并压缩到最小实现（约 60 行，含注释）。
 - **两边都不复制的部分**：状态的具体内容、存储位置、以及"谁来领取"，
   统一由消息 `consumeRestoreState` 与
   [`src/background/sleep.js`](../../src/background/sleep.js) 决定。

@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
  * that drifted between `manifest.json` and `package.json`, or a documented branch
  * name that no longer exists.
  *
- * Usage: node tool/validate.js [--only manifest|i18n|privacy|messages|branch] [--json]
+ * Usage: node tool/validate.js [--only manifest|i18n|privacy|messages|branch|links] [--json]
  */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -362,6 +362,18 @@ function git(args) {
   }
 }
 
+/** @type {string|null|undefined} */
+let trackedCache;
+/**
+ * Tracked files, one per line, or null outside a checkout. Memoised because the
+ * repository-wide sections below all need the same list.
+ * @returns {string|null}
+ */
+function trackedFiles() {
+  if (trackedCache === undefined) trackedCache = git(['ls-files']);
+  return trackedCache;
+}
+
 /**
  * Docs and workflow config name a branch in a few purely mechanical places:
  * `github.com/<owner>/<repo>/blob/<branch>/…` links, `git push origin <branch>`
@@ -381,7 +393,7 @@ function validateBranches() {
     /refs\/heads\/([A-Za-z0-9._/-]+)/g
   ];
 
-  const listing = git(['ls-files']);
+  const listing = trackedFiles();
   if (listing === null) {
     notes.push('branch: skipped (not a git checkout)');
     return;
@@ -437,6 +449,54 @@ function validateBranches() {
 }
 
 // ---------------------------------------------------------------------------
+// documentation links
+// ---------------------------------------------------------------------------
+
+/**
+ * Relative links between Markdown files are the connective tissue of the docs,
+ * and the easiest thing to break: deleting a file or renaming a section leaves
+ * every pointer to it silently dead, and a dead pointer costs a reader exactly
+ * the thing the docs existed to give them. (This rule exists because exactly that
+ * shipped — ADR-0004 still linked to `src/content/content-script.js` long after
+ * ADR-0008 deleted it.)
+ *
+ * Only relative paths are resolved against the filesystem. External URLs are
+ * deliberately **not** fetched: a validator that talks to the network fails when
+ * the network does, and `npm run validate` must stay offline.
+ */
+function validateLinks() {
+  const listing = trackedFiles();
+  if (listing === null) {
+    notes.push('links: skipped (not a git checkout)');
+    return;
+  }
+
+  const files = listing.split('\n').filter((name) => /\.md$/i.test(name));
+
+  let checked = 0;
+  for (const name of files) {
+    const file = path.join(ROOT, name);
+    const source = fs.readFileSync(file, 'utf8');
+
+    for (const match of source.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
+      // Skip absolute URLs (`https:`, `mailto:`, …) and pure anchors.
+      if (/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(match[1])) continue;
+
+      const target = match[1].split('#')[0];
+      if (!target) continue;
+
+      checked++;
+      const resolved = path.resolve(path.dirname(file), decodeURIComponent(target));
+      if (!fs.existsSync(resolved)) {
+        fail('links', `${name} links to "${target}", which does not exist`);
+      }
+    }
+  }
+
+  notes.push(`links: ${checked} relative link(s) in ${files.length} Markdown file(s) resolve`);
+}
+
+// ---------------------------------------------------------------------------
 // runner
 // ---------------------------------------------------------------------------
 
@@ -445,7 +505,8 @@ const SECTIONS = {
   i18n: validateI18n,
   privacy: validatePrivacy,
   messages: validateMessages,
-  branch: validateBranches
+  branch: validateBranches,
+  links: validateLinks
 };
 
 if (ONLY && !SECTIONS[ONLY]) {
