@@ -144,7 +144,7 @@ chore(deps): 升级 eslint
 
 ### 分支与 PR
 
-- 从 `main` 切出短期分支：`feat/xxx`、`fix/xxx`、`docs/xxx`。
+- 默认分支是 `master`。从它切出短期分支：`feat/xxx`、`fix/xxx`、`docs/xxx`。
 - 一个 PR 只做一件事；大改动请先开 issue 对齐设计。
 - PR 描述请按模板填写，特别是**如何验证**。
 - 任何触及权限（`manifest.json` 的 `permissions` / `host_permissions`）的改动，

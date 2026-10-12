@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,10 +10,11 @@ import { fileURLToPath } from 'node:url';
  *
  * It catches the class of mistakes that a browser only reports at runtime:
  * a manifest pointing at a file that no longer exists, a locale key that only
- * one language has, a message type that is declared but never handled, or a
- * version that drifted between `manifest.json` and `package.json`.
+ * one language has, a message type that is declared but never handled, a version
+ * that drifted between `manifest.json` and `package.json`, or a documented branch
+ * name that no longer exists.
  *
- * Usage: node tool/validate.js [--only manifest|i18n|privacy|messages] [--json]
+ * Usage: node tool/validate.js [--only manifest|i18n|privacy|messages|branch] [--json]
  */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -338,6 +340,103 @@ function validateMessages() {
 }
 
 // ---------------------------------------------------------------------------
+// branch references
+// ---------------------------------------------------------------------------
+
+/**
+ * Git plumbing, or null when this is not a checkout (an exported tarball, a
+ * container that ships the sources only, …). Every git-based check below
+ * degrades to a skip rather than a failure.
+ * @param {string[]} args
+ * @returns {string|null}
+ */
+function git(args) {
+  try {
+    return execFileSync('git', args, {
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Docs and workflow config name a branch in a few purely mechanical places:
+ * `github.com/<owner>/<repo>/blob/<branch>/…` links, `git push origin <branch>`
+ * commands, `refs/heads/<branch>` refspecs. A wrong name there survives review
+ * because it looks completely ordinary — the link 404s and the copy-pasted
+ * command dies with `src refspec <branch> does not match any`. (This rule exists
+ * because exactly that shipped: seven references said `main` while the repository
+ * default was `master`, including the documented release command.)
+ *
+ * Deliberately narrow: it only inspects positions where a branch name is
+ * unambiguous, so prose like "cut a `feat/xxx` branch" is not mistaken for one.
+ */
+function validateBranches() {
+  const patterns = [
+    /(?<![\w.-])github\.com\/[^\s/]+\/[^\s/]+\/(?:blob|tree|raw)\/([A-Za-z0-9._/-]+?)\//g,
+    /git push +[A-Za-z0-9_.-]+ +([A-Za-z0-9._/-]+)/g,
+    /refs\/heads\/([A-Za-z0-9._/-]+)/g
+  ];
+
+  const listing = git(['ls-files']);
+  if (listing === null) {
+    notes.push('branch: skipped (not a git checkout)');
+    return;
+  }
+
+  const files = listing
+    .split('\n')
+    .filter((name) => /\.(md|ya?ml)$/i.test(name))
+    .map((name) => path.join(ROOT, name));
+
+  /** @type {Map<string, string>} branch name -> first place that names it */
+  const referenced = new Map();
+  for (const file of files) {
+    const source = fs.readFileSync(file, 'utf8');
+    for (const pattern of patterns) {
+      for (const match of source.matchAll(pattern)) {
+        if (!referenced.has(match[1])) referenced.set(match[1], rel(file));
+      }
+    }
+  }
+
+  if (referenced.size === 0) {
+    notes.push('branch: no branch references to check');
+    return;
+  }
+
+  const refs = git(['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']);
+  const known = new Set();
+  for (const ref of (refs || '').split('\n')) {
+    const name = ref.trim();
+    if (!name || name === 'refs/remotes/origin/HEAD') continue;
+    const local = name.match(/^refs\/heads\/(.+)$/);
+    if (local) known.add(local[1]);
+    const remote = name.match(/^refs\/remotes\/[^/]+\/(.+)$/);
+    if (remote && remote[1] !== 'HEAD') known.add(remote[1]);
+  }
+
+  if (known.size === 0) {
+    notes.push('branch: skipped (no local or remote branches to compare against)');
+    return;
+  }
+
+  for (const [branch, file] of referenced) {
+    if (!known.has(branch)) {
+      fail(
+        'branch',
+        `${file} names the branch "${branch}", which does not exist in this repository`
+      );
+    }
+  }
+
+  notes.push(`branch: ${referenced.size} reference(s) point at existing branches`);
+}
+
+// ---------------------------------------------------------------------------
 // runner
 // ---------------------------------------------------------------------------
 
@@ -345,7 +444,8 @@ const SECTIONS = {
   manifest: validateManifest,
   i18n: validateI18n,
   privacy: validatePrivacy,
-  messages: validateMessages
+  messages: validateMessages,
+  branch: validateBranches
 };
 
 if (ONLY && !SECTIONS[ONLY]) {

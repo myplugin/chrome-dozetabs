@@ -58,6 +58,13 @@
   而标签页 ID 只在单次浏览器运行内唯一，残留条目可能与新分配的 ID 撞车，把滚动位置
   与表单内容恢复到无关的页面上。现在会在浏览器启动与扩展安装/更新时清理所有对应
   标签页已不存在的条目（`pruneSleepingTabs()`）。
+- **文档与 CI 配置把默认分支名写成了 `main`**：仓库的默认分支实际是 `master`，
+  而 `.github/ISSUE_TEMPLATE/config.yml` 的三个链接、`CONTRIBUTING.md` 的分支说明、
+  `docs/RELEASING.md` 的发布命令一共 7 处都写成了 `main`。后果不止「文档不准」：
+  issue 选择页的三个链接全部 404，贡献者照做 `git checkout main` 直接失败，
+  而**照着发布流程推送分支与 tag 时会报 `src refspec main does not match any`
+  ——文档里那条发版路径从未真正可用过**。
+  现已全部改为 `master`，并新增 `branch` 校验段（见下）防止再次漂移。
 
 ### 变更
 
@@ -114,6 +121,11 @@
 - 新增 `tool/validate.js`：校验 manifest 引用、多语言 key 对齐、
   消息类型「声明即处理」，并修正了原 i18n 检查脚本的误报
   （把 `Event('input'` 误判为 `t('input'`，以及漏掉 `data-i18n-placeholder`）。
+- `tool/validate.js` 新增第 5 个校验段 `branch`：扫描 `.md` / `.yml` 中
+  `…/blob/<branch>/`、`git push <remote> <branch>`、`refs/heads/<branch>`
+  这三类位置上出现的分支名，与本仓库真实存在的分支比对，不一致即失败。
+  规则刻意写得窄——只在分支名义无歧义的位置取值，所以文档里「切一个 `feat/xxx`
+  分支」这类示例不会被误判；不在 git 仓库中运行时自动跳过而非报错。
 - 打包工具重写为单一实现 `tool/build.js` + 自研零依赖 `tool/zip.js`：
   不再依赖 `zip`/PowerShell，跨平台产出一致，条目位于压缩包根目录。
 - 新增 GitHub Actions CI（Node 20/22/24 矩阵 + 打包校验）与 Release 工作流。

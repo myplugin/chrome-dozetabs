@@ -47,14 +47,15 @@ npm run format         # Prettier 全量格式化
 
 ## 改动影响面自查
 
-| 你改了什么                   | 必须同步                                                       |
-| ---------------------------- | -------------------------------------------------------------- |
-| `DEFAULT_SETTINGS` 增删键    | `tests/unit/constants.test.js` 的键名清单                      |
-| `MESSAGE_TYPES` 增删         | `src/background/router.js` 的 `handlers`（否则 validate 失败） |
-| 任何用户可见文案             | `src/_locales/en` **与** `src/_locales/zh_CN` 同步             |
-| `manifest.json` 的 `version` | `package.json` 的 `version`（否则 validate 失败）              |
-| 设计决策                     | 在 `docs/adr/` 新增一条 ADR                                    |
-| 任何变更                     | `CHANGELOG.md` 的 `[Unreleased]`                               |
+| 你改了什么                   | 必须同步                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `DEFAULT_SETTINGS` 增删键    | `tests/unit/constants.test.js` 的键名清单                                             |
+| `MESSAGE_TYPES` 增删         | `src/background/router.js` 的 `handlers`（否则 validate 失败）                        |
+| 任何用户可见文案             | `src/_locales/en` **与** `src/_locales/zh_CN` 同步                                    |
+| `manifest.json` 的 `version` | `package.json` 的 `version`（否则 validate 失败）                                     |
+| 默认分支改名                 | `.github/`、`CONTRIBUTING.md`、`docs/RELEASING.md` 里的分支引用（否则 validate 失败） |
+| 设计决策                     | 在 `docs/adr/` 新增一条 ADR                                                           |
+| 任何变更                     | `CHANGELOG.md` 的 `[Unreleased]`                                                      |
 
 ## 验证要求
 

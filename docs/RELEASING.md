@@ -51,10 +51,10 @@ npm run build
 打 tag 即触发 `.github/workflows/release.yml`：
 
 ```bash
-# 1) 合并到 main 且 CI 全绿
+# 1) 合并到 master 且 CI 全绿
 # 2) 打标签并推送
 git tag -a v1.1.0 -m "v1.1.0"
-git push origin main --tags
+git push origin master --tags
 ```
 
 工作流会：安装依赖 → 跑完整的 `npm run check` → 打包 → 校验 tag 与 manifest 版本一致
@@ -70,14 +70,19 @@ git push origin main --tags
 2. 填写「此版本的新增内容」（直接复制 CHANGELOG 对应小节）
 3. 隐私：确认「数据用途」声明与 [PRIVACY.md](../PRIVACY.md) 一致
    （本扩展不收集任何数据；唯一对外请求是页面自身的 favicon，仅为展示）
-4. 提交审核。审核期间不要再向 `main` 推送会改变 manifest 的提交
+4. 提交审核。审核期间不要再向 `master` 推送会改变 manifest 的提交
 
 > Edge 加载项（Edge Add-ons）可复用同一个 zip；Firefox 不在支持范围内（见
 > [ARCHITECTURE.md 的非目标](ARCHITECTURE.md#非目标明确的边界)）。
 
 ## 6. 仓库拓扑与同步
 
-**Gitee 是主开发平台，GitHub 是公开镜像。**
+**Gitee 是主开发平台，GitHub 是公开镜像。两个平台的默认分支都是 `master`。**
+
+本文档、`.github/` 配置与各处链接均按 `master` 书写，`npm run validate` 的 `branch`
+段会核对它们指向的分支是否真实存在——写成 `main` 这类不存在的分支名会直接让校验失败，
+而不是等到有人点开一个 404 链接、或照抄的命令报
+`src refspec main does not match any` 时才发现。
 
 | remote   | 地址                                            | 角色                              |
 | -------- | ----------------------------------------------- | --------------------------------- |
