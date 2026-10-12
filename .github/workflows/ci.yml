@@ -94,7 +94,7 @@ jobs:
       - name: Upload the extension package
         uses: actions/upload-artifact@v4
         with:
-          name: tab-sleep-extension
+          name: dozetabs-extension
           path: dist/*.zip
           if-no-files-found: error
           retention-days: 30

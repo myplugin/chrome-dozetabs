@@ -1,4 +1,4 @@
-# Tab Sleep
+# Dozetabs
 
 [中文](README.md) ｜ English (current)
 
@@ -17,7 +17,7 @@ placeholder page is injected** — click a sleeping tab and it reloads.
 
 ```bash
 # Up and running in 30 seconds: clone, load src/, done. No build step.
-git clone <repo> && cd tab-sleep
+git clone <repo> && cd dozetabs
 # chrome://extensions/ → Developer mode → Load unpacked → pick src/
 ```
 
@@ -81,7 +81,7 @@ These are design boundaries, not a backlog:
 
 ## How it compares
 
-|                                            | This extension                                                     | Typical tab-sleep extensions                 | Chrome's built-in Memory Saver              |
+|                                            | This extension                                                     | Typical dozetabs extensions                  | Chrome's built-in Memory Saver              |
 | ------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------- |
 | Mechanism                                  | Native `discard()`                                                 | Some replace the DOM with a placeholder page | Native `discard()`                          |
 | **Restored tabs stay unloaded at startup** | ✅ Three-layer mechanism, effective as soon as the extension loads | ⚠️ Up to the browser's own policy            | ⚠️ Browser decides, timing not controllable |
@@ -158,7 +158,7 @@ is in [docs/STARTUP-SUSPEND-TEST.md](docs/STARTUP-SUSPEND-TEST.md) (Chinese).
 ```bash
 npm ci        # installs eslint + prettier only; the test suite needs nothing
 npm run check # what CI runs: format + lint + consistency checks + 137 tests
-npm run build # produces dist/tab-sleep-v<version>.zip
+npm run build # produces dist/dozetabs-v<version>.zip
 ```
 
 - **No build step**: `src/` is the final artifact; edit a file and hit reload in

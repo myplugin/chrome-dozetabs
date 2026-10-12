@@ -5,7 +5,7 @@
 
 ## 项目是什么
 
-Tab Sleep 是一个 Chrome/Edge **Manifest V3 扩展**，用 Chrome 原生的
+Dozetabs 是一个 Chrome/Edge **Manifest V3 扩展**，用 Chrome 原生的
 `chrome.tabs.discard()` 把不用的标签页「休眠」以释放内存与 CPU。**没有构建步骤**：
 `src/` 目录就是最终产物，原生 ES Module，直接被浏览器加载。
 
@@ -22,7 +22,7 @@ npm run test:startup   # 只跑启动休眠相关的两组测试
 npm run validate       # 只跑一致性校验
 npm run lint:py        # 检查 scripts/*.py（需 pip install -r scripts/requirements-dev.txt）
 python scripts/verify-in-browser.py   # 真机验证：加载/UI 渲染/采集与恢复（42 项断言）
-npm run build          # 产出 dist/tab-sleep-v<version>.zip
+npm run build          # 产出 dist/dozetabs-v<version>.zip
 npm run format         # Prettier 全量格式化
 ```
 

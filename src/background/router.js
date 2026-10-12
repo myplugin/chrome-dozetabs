@@ -132,7 +132,7 @@ export function registerMessageRouter() {
     handleMessage(message, sender)
       .then(sendResponse)
       .catch((error) => {
-        console.error('[Tab Sleep] Message handler failed:', message && message.type, error);
+        console.error('[Dozetabs] Message handler failed:', message && message.type, error);
         sendResponse({ success: false, reason: 'unknownError', error: error.message });
       });
 

@@ -1,4 +1,4 @@
-# Tab Sleep · 标签页休眠
+# Dozetabs · 标签页休眠
 
 [English](README.en.md) ｜ 中文（当前）
 
@@ -15,7 +15,7 @@
 
 ```bash
 # 30 秒上手：克隆 → 加载 src/ → 完事（无构建步骤）
-git clone <repo> && cd tab-sleep
+git clone <repo> && cd dozetabs
 # chrome://extensions/ → 开发者模式 → 加载已解压的扩展程序 → 选择 src/
 ```
 
@@ -138,7 +138,7 @@ git clone <repo> && cd tab-sleep
 ```bash
 npm ci        # 只装 eslint / prettier；测试零依赖
 npm run check # 提交前必跑：格式 + lint + 一致性校验 + 137 项测试
-npm run build # 产出 dist/tab-sleep-v<version>.zip
+npm run build # 产出 dist/dozetabs-v<version>.zip
 ```
 
 - **无构建步骤**：`src/` 即最终产物，改完在扩展页点刷新即可。

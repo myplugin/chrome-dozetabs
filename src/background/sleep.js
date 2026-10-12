@@ -136,7 +136,7 @@ export async function restoreIntoTab(tabId) {
       return true;
     } catch (error) {
       if (attempt === attempts) {
-        console.warn('[Tab Sleep] Could not restore state into tab', tabId, '-', error.message);
+        console.warn('[Dozetabs] Could not restore state into tab', tabId, '-', error.message);
         return false;
       }
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -176,7 +176,7 @@ export async function pruneSleepingTabs() {
 
   const removed = await removeSleepingTabs(stale);
   if (removed > 0) {
-    console.log('[Tab Sleep] Pruned', removed, 'stale tab-state entries');
+    console.log('[Dozetabs] Pruned', removed, 'stale tab-state entries');
   }
   return removed;
 }

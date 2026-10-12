@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "Tab Sleep Tool",
+    "message": "Dozetabs",
     "description": "Extension name"
   },
   "extDesc": {
@@ -94,7 +94,7 @@
     "description": "Error message"
   },
   "settingsTitle": {
-    "message": "Tab Sleep Tool Settings",
+    "message": "Dozetabs Settings",
     "description": "Settings page title"
   },
   "generalSettings": {

@@ -9,7 +9,7 @@
 ```bash
 npm ci          # 仅安装 eslint / prettier，测试零依赖
 npm run check   # 提交前必跑：格式 + lint + 一致性校验 + 测试
-npm run build   # 产出 dist/tab-sleep-v<version>.zip
+npm run build   # 产出 dist/dozetabs-v<version>.zip
 ```
 
 加载扩展：`chrome://extensions/` → 开发者模式 → 加载已解压的扩展程序 → 选择 **`src/`**。

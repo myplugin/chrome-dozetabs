@@ -115,7 +115,7 @@ async function loadTabs({ preserveScroll = false } = {}) {
 
     renderTabsList(preserveScroll);
   } catch (error) {
-    console.error('[Tab Sleep] Failed to load tabs:', error);
+    console.error('[Dozetabs] Failed to load tabs:', error);
     tabsListEl.innerHTML = `<div class="loading">${t('failedToLoadTabs')}</div>`;
   }
 }

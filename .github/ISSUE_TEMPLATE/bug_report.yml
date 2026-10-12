@@ -72,7 +72,7 @@ body:
       label: Service worker console output
       description: |
         `chrome://extensions/` → enable Developer mode → click the "service worker"
-        link on the extension card. Paste anything logged with a `[Tab Sleep]` prefix.
+        link on the extension card. Paste anything logged with a `[Dozetabs]` prefix.
       render: shell
     validations:
       required: false

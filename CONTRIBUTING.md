@@ -1,6 +1,6 @@
 # 贡献指南 / Contributing
 
-感谢你有兴趣改进 Tab Sleep。本文档说明**如何搭建环境、代码怎么组织、一个改动要通过哪些关卡**。
+感谢你有兴趣改进 Dozetabs。本文档说明**如何搭建环境、代码怎么组织、一个改动要通过哪些关卡**。
 
 > English speakers: the essentials are in [For English contributors](#for-english-contributors) at the end.
 
@@ -12,7 +12,7 @@
 
 ```bash
 git clone <repo>
-cd tab-sleep
+cd dozetabs
 npm ci          # 仅安装 eslint / prettier，测试不依赖任何 npm 包
 ```
 

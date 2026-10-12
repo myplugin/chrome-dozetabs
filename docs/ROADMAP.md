@@ -200,7 +200,7 @@ ID 撞车，把滚动位置/表单内容恢复到无关的页面上。在 `onSta
 
 ### ⚪ L5. 名称与品牌
 
-`Tab Sleep` / `Tab Sleep Tool` 与应用商店中已有的同名扩展高度重合，存在检索与商标风险。
+`Dozetabs` / `Dozetabs` 与应用商店中已有的同名扩展高度重合，存在检索与商标风险。
 若要长期运营，建议确定一个更具辨识度的名字，并同步 README、`manifest.json`
 的 `__MSG_extName__`、GitHub 仓库名与应用商店条目。
 

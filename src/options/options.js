@@ -66,7 +66,7 @@ async function loadSettings() {
     autoSleepTimeout.value = String(settings.autoSleepTimeout);
     updateAutoSleepTimeoutVisibility();
   } catch (error) {
-    console.error('[Tab Sleep] Failed to load settings:', error);
+    console.error('[Dozetabs] Failed to load settings:', error);
     showToast(t('failedToLoadSettings'), 'error');
   }
 }
@@ -125,7 +125,7 @@ async function loadWhitelist() {
     currentWhitelist = response?.whitelist || [...DEFAULT_WHITELIST];
     renderWhitelist();
   } catch (error) {
-    console.error('[Tab Sleep] Failed to load whitelist:', error);
+    console.error('[Dozetabs] Failed to load whitelist:', error);
   }
 }
 
@@ -228,7 +228,7 @@ async function loadStatistics() {
     totalSleptEl.textContent = String(stats.totalSlept || 0);
     totalWokenEl.textContent = String(stats.totalWoken || 0);
   } catch (error) {
-    console.error('[Tab Sleep] Failed to load statistics:', error);
+    console.error('[Dozetabs] Failed to load statistics:', error);
   }
 }
 

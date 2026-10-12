@@ -91,7 +91,7 @@ export async function setupAutoSleep() {
   await chrome.alarms.create(AUTO_SLEEP.ALARM_NAME, {
     periodInMinutes: AUTO_SLEEP.CHECK_INTERVAL_MINUTES
   });
-  console.log('[Tab Sleep] Auto-sleep armed, timeout', timeoutMinutes, 'min');
+  console.log('[Dozetabs] Auto-sleep armed, timeout', timeoutMinutes, 'min');
 }
 
 /**

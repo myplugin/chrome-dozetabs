@@ -1,6 +1,6 @@
-﻿<#
+<#
 .SYNOPSIS
-    Tab Sleep - 启动抢先休眠 验收测量脚本
+    Dozetabs - 启动抢先休眠 验收测量脚本
 
 .DESCRIPTION
     浏览器重启后测量内存占用，用于 docs/STARTUP-SUSPEND-TEST.md 的手工验收：
@@ -25,7 +25,7 @@
 
 .EXAMPLE
     # 只统计指定 profile，并以 5 GB 为上限做判定
-    .\scripts\measure-memory.ps1 -Profile 'C:\tmp\tab-sleep-smoke-b' -MaxWorkingSetGb 5
+    .\scripts\measure-memory.ps1 -Profile 'C:\tmp\dozetabs-smoke-b' -MaxWorkingSetGb 5
 #>
 param(
     [ValidateSet('msedge', 'chrome')]
@@ -73,7 +73,7 @@ $totalWS = ($procs | Measure-Object WorkingSet64 -Sum).Sum / 1GB
 $totalPM = ($procs | Measure-Object PrivateMemorySize64 -Sum).Sum / 1GB
 
 Write-Host ""
-Write-Host "===== Tab Sleep 启动休眠 验收测量 ($Browser) =====" -ForegroundColor Cyan
+Write-Host "===== Dozetabs 启动休眠 验收测量 ($Browser) =====" -ForegroundColor Cyan
 Write-Host ("测量时间        : {0}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
 if ($Profile) {
     Write-Host ("进程过滤        : 命令行包含 '{0}'" -f $Profile)

@@ -60,7 +60,7 @@ EXPECTED_LOCALE_KEYS = 91
 
 async def run(args: argparse.Namespace) -> int:
     report = B.Report()
-    profile = os.path.join(tempfile.gettempdir(), "tab-sleep-browser-verify")
+    profile = os.path.join(tempfile.gettempdir(), "dozetabs-browser-verify")
     shutil.rmtree(profile, ignore_errors=True)
 
     B.kill_browser_for_profile(profile)
@@ -306,7 +306,7 @@ def main() -> int:
     parser.add_argument("--keep-open", action="store_true", help="leave the browser open for a minute")
     args = parser.parse_args()
 
-    B.log("Tab Sleep - real-browser verification")
+    B.log("Dozetabs - real-browser verification")
     B.log(f"extension: {B.EXT_DIR}")
     B.log("")
     return asyncio.run(run(args))

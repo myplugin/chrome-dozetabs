@@ -43,7 +43,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   await pruneSleepingTabs();
   await createContextMenus();
   await setupAutoSleep();
-  console.log('[Tab Sleep] Extension installed/updated');
+  console.log('[Dozetabs] Extension installed/updated');
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -53,7 +53,7 @@ chrome.runtime.onStartup.addListener(async () => {
   try {
     await openStartupWindowIfNeeded();
   } catch (error) {
-    console.warn('[Tab Sleep] Failed to open the startup suspend window:', error);
+    console.warn('[Dozetabs] Failed to open the startup suspend window:', error);
   }
 
   await initializeStorage();
@@ -153,7 +153,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       await sleepAllOtherTabs(tab.id);
     }
   } catch (error) {
-    console.error('[Tab Sleep] Command handler failed:', error);
+    console.error('[Dozetabs] Command handler failed:', error);
   }
 });
 
@@ -178,4 +178,4 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
   }
 });
 
-console.log('[Tab Sleep] Service worker started');
+console.log('[Dozetabs] Service worker started');

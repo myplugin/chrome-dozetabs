@@ -2,7 +2,7 @@
 
 **一句话：本扩展不收集、不上传、不共享任何用户数据。所有数据只存在于你的浏览器本地。**
 
-最后更新：2026-10-11 · 适用于 Tab Sleep 全部版本
+最后更新：2026-10-11 · 适用于 Dozetabs 全部版本
 
 ---
 
@@ -69,7 +69,7 @@
 
 ## English summary
 
-Tab Sleep collects **nothing**. Settings, whitelists, statistics, and the captured
+Dozetabs collects **nothing**. Settings, whitelists, statistics, and the captured
 scroll position / form contents (passwords excluded) live only in your browser's
 local extension storage, and captured page state is deleted as soon as it is
 restored. The extension contains no analytics, telemetry, or remote configuration,

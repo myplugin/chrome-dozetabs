@@ -11,7 +11,7 @@ import { createZip } from './zip.js';
  *        npm run build
  *
  * The archive contains the extension files at its root (`manifest.json`, not
- * `tab-sleep-v1.0.0/manifest.json`) — the store rejects a nested top-level
+ * `dozetabs-v1.0.0/manifest.json`) — the store rejects a nested top-level
  * directory. Run `npm run check` first; this script deliberately does not
  * re-implement the validator.
  */
@@ -19,7 +19,7 @@ import { createZip } from './zip.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC_DIR = path.join(ROOT, 'src');
 const DIST_DIR = path.join(ROOT, 'dist');
-const EXTENSION_NAME = 'tab-sleep';
+const EXTENSION_NAME = 'dozetabs';
 
 /** Files that never belong in a store package. */
 const IGNORED_SUFFIXES = ['.map', '.md', '.DS_Store', 'Thumbs.db', '.gitkeep'];
@@ -82,7 +82,7 @@ function build() {
   const zipPath = path.join(DIST_DIR, `${packageName}.zip`);
 
   console.log('========================================');
-  console.log('Tab Sleep — extension packager');
+  console.log('Dozetabs — extension packager');
   console.log('========================================');
   console.log(`Manifest version : ${manifest.version}`);
   console.log(`Package version  : ${version}`);

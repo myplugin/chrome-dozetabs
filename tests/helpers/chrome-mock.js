@@ -220,7 +220,7 @@ export function createChromeMock(options = {}) {
       onSuspend: createEvent(),
       lastError: null,
       id: 'test-extension-id',
-      getManifest: () => ({ version: '1.0.0', name: 'Tab Sleep' }),
+      getManifest: () => ({ version: '1.0.0', name: 'Dozetabs' }),
       getURL: (resourcePath) =>
         `chrome-extension://test-extension-id${resourcePath.startsWith('/') ? '' : '/'}${resourcePath}`
     },

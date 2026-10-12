@@ -11,6 +11,18 @@
 一次面向开源协作的整体工程化整改：修复阻断级缺陷、拆分核心模块、重建测试与
 工具链，并补齐治理与架构文档。对外行为**基本保持不变**，例外见下方「变更」。
 
+### 重命名
+
+- 项目原名 **Tab Sleep**，现更名为 **Dozetabs**（月亮图标 + doze「打盹」，
+  与它的实际行为一致）。更名原因：应用商店里已有多个同名的标签页休眠扩展，
+  搜索时容易被淹没；现在尚未发布、没有用户，是改名成本最低的时刻。
+- 同步更新：扩展显示名（英文 `Dozetabs`、中文 `Dozetabs 标签页休眠`）、
+  `package.json`、打包产物名（`dozetabs-v<version>.zip`）、本地日志前缀
+  （`[Dozetabs]`）以及全部文档。
+- **未改**：Gitee / GitHub 上的仓库名仍为 `chrome-tab-sleep`，
+  因此 remote 地址与 CI 配置不受影响；如需一并改名，仓库设置里操作后
+  同步 `git remote set-url` 即可。
+
 ### 修复
 
 - **真机测试钩子回归**：给 `sweepStartupTabs()` 加上「必须窗口打开」的授权检查后，
@@ -32,7 +44,7 @@
 - **`node tool/build.js` 无法运行**：`package.json` 为 `"type": "module"`，
   而脚本使用 `require()`，直接抛出 `ReferenceError`。
 - **`tool/build.sh` 产出的 zip 结构错误**：把整个目录作为顶层项打包
-  （`tab-sleep-v1.0.0/manifest.json`），会被 Chrome 应用商店拒绝。
+  （`dozetabs-v1.0.0/manifest.json`），会被 Chrome 应用商店拒绝。
 - **`confirmSleepAll` 是「幽灵设置」**：README 与单元测试都声称存在
   「休眠其他标签页前先确认」，但代码从未实现、选项页也没有开关。现已完整实现
   （选项页开关 + 弹窗确认框）。

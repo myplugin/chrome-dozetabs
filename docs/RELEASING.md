@@ -30,13 +30,13 @@
 
 ```bash
 npm run build
-# → dist/tab-sleep-v<version>.zip
+# → dist/dozetabs-v<version>.zip
 ```
 
 打包器（`tool/build.js`）的行为：
 
 - 只打包 `src/`，条目的**路径相对于 `src/`**，因此 zip 内是
-  `manifest.json` 而不是 `tab-sleep-v1.0.0/manifest.json`
+  `manifest.json` 而不是 `dozetabs-v1.0.0/manifest.json`
   —— Chrome 应用商店会拒绝带嵌套顶层目录的包；
 - 剔除 `*.map`、`*.md`、`.gitkeep`、`Thumbs.db` 等；
 - 使用自研的纯 Node ZIP 实现（`tool/zip.js`），**不依赖 `zip` 命令或 PowerShell**，
@@ -66,7 +66,7 @@ git push origin main --tags
 
 两个商店都接受 `npm run build` 产出的 zip。提交流程：
 
-1. 开发者后台 → 新建/更新版本 → 上传 `dist/tab-sleep-v<version>.zip`
+1. 开发者后台 → 新建/更新版本 → 上传 `dist/dozetabs-v<version>.zip`
 2. 填写「此版本的新增内容」（直接复制 CHANGELOG 对应小节）
 3. 隐私：确认「数据用途」声明与 [PRIVACY.md](../PRIVACY.md) 一致
    （本扩展不收集任何数据；唯一对外请求是页面自身的 favicon，仅为展示）

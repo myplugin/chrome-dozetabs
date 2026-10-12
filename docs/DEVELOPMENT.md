@@ -34,7 +34,7 @@ npm ci        # 安装 eslint / prettier（约 4 个直接依赖）
 | 存储内容            | Worker DevTools → Application → Storage → Extension Storage   |
 | 内存对比            | `Shift+Esc` 打开 Chrome 任务管理器，观察各标签页的渲染进程    |
 
-所有日志都带 `[Tab Sleep]` 前缀，便于过滤。
+所有日志都带 `[Dozetabs]` 前缀，便于过滤。
 
 **调试 Service Worker 生命周期**：MV3 的 Worker 空闲约 30 秒会被回收。要观察
 "状态在 Worker 重启后是否还在"，可以在 Worker DevTools 中手动点
@@ -48,14 +48,14 @@ npm run format         # Prettier 全量格式化
 npm run lint:fix       # ESLint 自动修复
 npm test               # 测试
 npm run validate       # manifest / 多语言 / 消息协议校验
-npm run build          # 打包为 dist/tab-sleep-v<version>.zip
+npm run build          # 打包为 dist/dozetabs-v<version>.zip
 ```
 
 ## 4. 代码约定
 
 - **缩进 2 空格、单引号、必须有分号、行宽 100**；由 Prettier 统一，不要手工对抗。
 - 注释解释**为什么**，不复述代码。涉及取舍的地方请指向对应的 ADR。
-- 模块内不做 `console.log` 级别以下的噪音输出；关键生命周期日志保留 `[Tab Sleep]` 前缀。
+- 模块内不做 `console.log` 级别以下的噪音输出；关键生命周期日志保留 `[Dozetabs]` 前缀。
 - 不引入运行时依赖。`src/` 中出现的任何第三方代码都需要一次 ADR 讨论。
 
 ### 命名

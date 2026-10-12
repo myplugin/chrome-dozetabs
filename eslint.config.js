@@ -16,7 +16,7 @@ const sharedRules = {
   eqeqeq: ['error', 'smart'],
   'no-var': 'error',
   'prefer-const': 'error',
-  // The extension logs with a '[Tab Sleep]' prefix on purpose; it is the only
+  // The extension logs with a '[Dozetabs]' prefix on purpose; it is the only
   // diagnostic channel available inside a service worker.
   'no-console': 'off'
 };

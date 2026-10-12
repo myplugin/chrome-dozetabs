@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Smoke test for Tab Sleep Tool - "startup suspend" (启动抢先丢弃).
+Smoke test for Dozetabs - "startup suspend" (启动抢先丢弃).
 
 What it does:
   1. Serves N local pages on 127.0.0.1 (no external network needed).
@@ -63,7 +63,7 @@ class PageHandler(BaseHTTPRequestHandler):
         name = self.path.strip("/").split("?")[0] or "index"
         body = (
             '<!doctype html><html><head><meta charset="utf-8">'
-            f"<title>{name} - tab-sleep test</title></head>"
+            f"<title>{name} - dozetabs test</title></head>"
             '<body style="font:16px sans-serif">'
             f"<h1>Page: {name}</h1>"
             # A little live content so a loaded tab is visibly different
@@ -323,8 +323,8 @@ def main():
     args = ap.parse_args()
     n = args.tabs
 
-    profile_a = os.path.join(tempfile.gettempdir(), "tab-sleep-smoke-a")
-    profile_b = os.path.join(tempfile.gettempdir(), "tab-sleep-smoke-b")
+    profile_a = os.path.join(tempfile.gettempdir(), "dozetabs-smoke-a")
+    profile_b = os.path.join(tempfile.gettempdir(), "dozetabs-smoke-b")
     profiles = [profile_a, profile_b]
 
     server = start_server()

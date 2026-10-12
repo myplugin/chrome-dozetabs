@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "标签页休眠",
+    "message": "Dozetabs 标签页休眠",
     "description": "扩展名称"
   },
   "extDesc": {
@@ -94,7 +94,7 @@
     "description": "错误提示"
   },
   "settingsTitle": {
-    "message": "标签页休眠工具 - 设置",
+    "message": "Dozetabs 标签页休眠 - 设置",
     "description": "设置页面标题"
   },
   "generalSettings": {

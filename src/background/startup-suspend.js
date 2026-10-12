@@ -93,7 +93,7 @@ export async function initStartupSuspend() {
     // (scripts/smoke-test.py opens the window explicitly, because some
     // automation environments never deliver onStartup.)
   } catch (error) {
-    console.warn('[Tab Sleep] Startup suspend init failed:', error);
+    console.warn('[Dozetabs] Startup suspend init failed:', error);
   }
 }
 
@@ -109,7 +109,7 @@ export async function openStartupWindowIfNeeded() {
   await sessionSet({ [SESSION_KEYS.STARTUP_WINDOW_END]: end });
   state.windowEnd = end;
 
-  console.log('[Tab Sleep] Startup suspend window open for', STARTUP_SUSPEND_WINDOW_MS, 'ms');
+  console.log('[Dozetabs] Startup suspend window open for', STARTUP_SUSPEND_WINDOW_MS, 'ms');
   await refreshContext();
   await sweepStartupTabs('startup');
   scheduleSweeps();
@@ -185,7 +185,7 @@ export async function sweepStartupTabs(reason) {
     }
 
     if (discarded > 0) {
-      console.log(`[Tab Sleep] Startup sweep (${reason}): discarded ${discarded} tabs`);
+      console.log(`[Dozetabs] Startup sweep (${reason}): discarded ${discarded} tabs`);
     }
     return discarded;
   } catch {
