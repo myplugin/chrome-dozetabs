@@ -129,9 +129,6 @@ export const MESSAGE_TYPES = {
   GET_BATCH_STATUS: 'getBatchStatus',
   ABORT_BATCH: 'abortBatch',
 
-  // Favicons
-  FETCH_FAVICON: 'fetchFavicon',
-
   // Test hook used by scripts/smoke-test.py to force a startup sweep.
   TRIGGER_STARTUP_SWEEP: 'triggerStartupSweep'
 };

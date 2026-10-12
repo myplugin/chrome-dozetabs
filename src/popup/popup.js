@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, MESSAGE_TYPES } from '../utils/constants.js';
 import { escapeHtml, showToast } from '../utils/dom.js';
 import { applyTranslations, t } from '../utils/i18n.js';
+import { faviconUrl } from '../utils/favicon.js';
 import { isTabSleeping } from '../utils/tab-manager.js';
 import { countSleepingTabs, waitForTab, waitForTabs } from '../utils/tab-wait.js';
 import {
@@ -206,7 +207,7 @@ function createTabItem(tab) {
 
   return `
     <div class="tab-item ${isActive ? 'active' : ''} ${isSleeping ? 'sleeping' : ''} ${isLocked ? 'locked' : ''}" data-tab-id="${tab.id}">
-      <img class="tab-favicon" src="${DEFAULT_FAVICON}" data-favicon-url="${escapeHtml(tab.favIconUrl || '')}" alt="">
+      <img class="tab-favicon" src="${DEFAULT_FAVICON}" data-favicon-page="${escapeHtml(tab.url || '')}" alt="">
       <div class="tab-info">
         <div class="tab-title">${escapeHtml(tab.title || t('untitled'))}</div>
         <div class="tab-url">${escapeHtml(getShortUrl(tab.url))}</div>
@@ -221,30 +222,27 @@ function createTabItem(tab) {
 }
 
 /**
- * Resolve favicons through the service worker with a small worker pool.
- * Sequential fetching made a 200-tab list crawl.
- * @param {number} [limit] - concurrent requests
+ * Point each row's icon at the browser's built-in favicon endpoint.
+ *
+ * No network request and no service-worker round trip: Chrome resolves the icon
+ * from its own cache. The error listener is attached *before* `src` is set so a
+ * missing icon falls back to the placeholder instead of a broken image.
  */
-async function loadFavicons(limit = 6) {
-  const images = [...tabsListEl.querySelectorAll('.tab-favicon[data-favicon-url]')];
-  let cursor = 0;
+function loadFavicons() {
+  tabsListEl.querySelectorAll('.tab-favicon[data-favicon-page]').forEach((img) => {
+    const pageUrl = img.dataset.faviconPage;
+    delete img.dataset.faviconPage;
+    if (!pageUrl) return;
 
-  async function worker() {
-    while (cursor < images.length) {
-      const img = images[cursor++];
-      const url = img.dataset.faviconUrl;
-      delete img.dataset.faviconUrl;
-      if (!url) continue;
-      try {
-        const result = await sendMessage({ type: MESSAGE_TYPES.FETCH_FAVICON, payload: { url } });
-        if (result?.dataUrl) img.src = result.dataUrl;
-      } catch {
-        // keep the placeholder
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(limit, images.length) }, () => worker()));
+    img.addEventListener(
+      'error',
+      () => {
+        img.src = DEFAULT_FAVICON;
+      },
+      { once: true }
+    );
+    img.src = faviconUrl(pageUrl);
+  });
 }
 
 // --- Views -------------------------------------------------------------------

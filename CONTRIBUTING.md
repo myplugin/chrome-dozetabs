@@ -39,7 +39,7 @@ npm run check
 | 格式       | `npm run format:check` | Prettier 风格是否一致                        |
 | 静态检查   | `npm run lint`         | ESLint 规则（含未使用变量、未定义全局变量）  |
 | 一致性校验 | `npm run validate`     | manifest 引用、多语言 key 对齐、消息协议闭环 |
-| 测试       | `npm test`             | 129 项单元 + 集成断言（`node:test`，零依赖） |
+| 测试       | `npm test`             | 135 项单元 + 集成断言（`node:test`，零依赖） |
 
 单独运行某一项也是可以的，例如 `npm test`、`node tool/validate.js --only i18n`。
 
@@ -48,7 +48,7 @@ npm run check
 ```bash
 python -m pip install -r scripts/requirements-dev.txt
 npm run lint:py                       # pyflakes：抓未定义变量一类的错误
-python scripts/verify-in-browser.py   # 真机验证：加载 / UI 渲染 / 采集与恢复（38 项断言）
+python scripts/verify-in-browser.py   # 真机验证：加载 / UI 渲染 / 采集与恢复（41 项断言）
 ```
 
 `verify-in-browser.py` 是**唯一**能在自动化环境稳定跑通的真机检查：改动任何 UI 或
@@ -71,7 +71,7 @@ src/
     batch.js               "休眠其他标签页" 批处理状态机
     auto-sleep.js          基于空闲时长的自动休眠
     startup-suspend.js     启动抢先休眠（本项目最核心的能力）
-    badge.js / favicon.js / menus.js / tab-state.js
+    badge.js / menus.js / tab-state.js
   utils/                 两端（SW 与 UI）共享的纯逻辑
   popup/ options/ content/ UI 与内容脚本
 tests/                   node:test 测试与共享 chrome mock

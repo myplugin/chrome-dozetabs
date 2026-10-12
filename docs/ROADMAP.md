@@ -9,24 +9,34 @@
 
 ## 下一步（Next）
 
-### 🔵 N1. 把 favicon 抓取换成 Chrome 内置的 `favicon` 权限
+### 🟢 N1. 把 favicon 抓取换成 Chrome 内置的 `favicon` 权限 —— 已完成（2026-10）
 
-**问题**：弹窗展示标签页图标时，Service Worker 会用 `fetch()` 去抓页面声明的
-`favIconUrl`。这是本扩展**唯一**的对外网络请求。
+原先弹窗展示标签页图标时，Service Worker 会用 `fetch()` 去抓页面声明的 `favIconUrl`
+——那是本扩展**唯一**的对外网络请求。
 
-**方案**：Chrome 102+ 提供 `favicon` 权限与
-`chrome-extension://<id>/_favicon/?pageUrl=...&size=32` 端点，可直接在弹窗的 `<img src>`
-里使用。
+现已改用 Chrome 102+ 内置的 `_favicon/` 端点：弹窗直接引用
+`chrome-extension://<id>/_favicon/?pageUrl=…&size=32`，图标由浏览器从自己的缓存提供。
 
-**收益**：对外请求降为 0，`PRIVACY.md` 与商店隐私声明可以从
-「唯一的对外请求是页面自己的图标」升级为「零对外请求」。
+**收益**：对外请求降为 **0**。`PRIVACY.md` 与商店隐私声明从「唯一的对外请求是页面
+自己的图标」升级为「零对外请求」；同时删掉了 `background/favicon.js`（45 行）、
+`fetchFavicon` 消息类型，以及弹窗里的并发抓取与 SW 内存缓存。
 
-**注意**：`favicon` 权限不产生用户可见的安装警告，因此这是纯粹的改进；
-但必须真机验证图标在 Chrome 与 Edge 上都正常显示，且 `_favicon/` 需要
-`web_accessible_resources` 之类的配套声明。改动会影响 `manifest.json`，
-按破坏性变更处理。
+**意外的额外收益**：原先用的是 `tab.favIconUrl`，而**被休眠的标签页没有这个字段**，
+所以休眠中的标签页一直显示占位图。新的查询按**页面 URL** 取图标，休眠标签页也能显示
+真实图标。
 
-**验收**：弹窗列表图标全部正常；抓包确认无对外请求。
+**关于权限**：加了 `favicon`。按官方文档，它**只在尚未申请 `tabs` 或主机权限时才
+触发安装警告**；本项目两者都有，所以安装提示一字未变。另外 `web_accessible_resources`
+**只在内容脚本里用图标时才需要**——我们在弹窗（扩展自己的页面）里用，不需要声明，
+也就不会把资源暴露给网页。
+
+**验收（已完成）**：
+
+- `npm run validate` 新增 **privacy** 段：扫描 `src/` 中任何 `fetch()` /
+  `XMLHttpRequest` / `WebSocket` 即判定失败——把这条承诺变成 CI 强制的规则，
+  而不是文档里的一句口号；
+- `verify-in-browser.py` 新增 3 项断言（真机 Edge 通过）：弹窗图标不来自网络、
+  manifest 已声明权限、`_favicon/` 端点确实返回了图片。
 
 ---
 
@@ -39,7 +49,7 @@
 - **删除** `popup-e2e-probe.py`（`active_before` 未定义导致每次必崩，从未完整跑通过）
   与 `sw-log-probe.py`（检查失败仍以 0 退出，假绿；且它宣传的"dump SW 日志"能力
   在 Playwright 下根本不可用）；
-- **新增** `scripts/verify-in-browser.py`：38 项断言、退出码可信，覆盖扩展加载、
+- **新增** `scripts/verify-in-browser.py`：41 项断言、退出码可信，覆盖扩展加载、
   设置默认值、弹窗/选项页渲染、状态采集（含密码排除）与唤醒恢复握手。
   已在本机真实 Edge 上跑通；
 - 修掉 `get_sw()` 死代码、`relaunched_at` 未使用、无效的 `--enable-extensions` 开关；
@@ -165,7 +175,7 @@ ID 撞车，把滚动位置/表单内容恢复到无关的页面上。在 `onSta
 ### 🟢 D2. 真机脚本整理与浏览器验证（2026-10）
 
 删除两个不可信的探针脚本，新增可在自动化环境稳定通过的
-`scripts/verify-in-browser.py`（38 项断言），并借它完成了对本轮重构的真机验证：
+`scripts/verify-in-browser.py`（41 项断言），并借它完成了对本轮重构的真机验证：
 弹窗与选项页渲染、状态采集（含密码排除）、唤醒恢复握手。
 过程中还抓出并修复了一个只有端到端运行才会暴露的启动清扫回归。
 详见 [N2](#-n2-整理-scripts-下的真机脚本--已完成2026-10)。
@@ -173,5 +183,5 @@ ID 撞车，把滚动位置/表单内容恢复到无关的页面上。在 `onSta
 ### 🟢 D1. 工程化与缺陷整改（2026-10）
 
 一次完整的系统审计与整改：拆分 1025 行的 Service Worker、修复 5 个阻断级缺陷、
-把测试从 37 项提升到 129 项并迁移到零依赖的 Node 测试运行器、重建打包与校验工具、
+把测试从 37 项提升到 135 项并迁移到零依赖的 Node 测试运行器、重建打包与校验工具、
 补齐治理与架构文档。详见 [AUDIT.md](AUDIT.md) 与 [CHANGELOG](../CHANGELOG.md)。

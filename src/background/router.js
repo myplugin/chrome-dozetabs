@@ -12,7 +12,6 @@ import {
 } from '../utils/storage.js';
 import { addToWhitelist, removeFromWhitelist } from '../utils/whitelist.js';
 import { abortBatch, getBatchStatus, sleepAllOtherTabs } from './batch.js';
-import { fetchFavicon } from './favicon.js';
 import { consumeRestoreState, sleepTab, wakeTab } from './sleep.js';
 import { adoptStartupWindowFromSession, sweepStartupTabs } from './startup-suspend.js';
 
@@ -90,8 +89,6 @@ const handlers = {
   [MESSAGE_TYPES.ABORT_BATCH]: async () => abortBatch(),
 
   // --- misc ----------------------------------------------------------------
-  [MESSAGE_TYPES.FETCH_FAVICON]: (payload) => fetchFavicon(payload.url),
-
   // Test hook: the real-browser smoke test writes the startup-window boundary
   // into chrome.storage.session (some automation environments never deliver
   // chrome.runtime.onStartup) and then asks for a sweep. Re-reading the boundary

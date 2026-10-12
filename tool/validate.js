@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
  * one language has, a message type that is declared but never handled, or a
  * version that drifted between `manifest.json` and `package.json`.
  *
- * Usage: node tool/validate.js [--only manifest|i18n|messages] [--json]
+ * Usage: node tool/validate.js [--only manifest|i18n|privacy|messages] [--json]
  */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -235,6 +235,62 @@ function validateI18n() {
 }
 
 // ---------------------------------------------------------------------------
+// privacy invariants
+// ---------------------------------------------------------------------------
+
+/**
+ * Strip comments so that prose *about* network calls never trips the gate.
+ *
+ * Heuristic on purpose: it skips `//` that follows a `:` so that `https://…`
+ * survives. It may therefore leave an unusual literal untouched — that errs
+ * toward reporting, which is the safe direction for a gate.
+ * @param {string} source
+ * @returns {string}
+ */
+function stripComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
+/**
+ * The extension promises (README, PRIVACY.md, and the Chrome Web Store privacy
+ * declaration) that it makes **no network requests**. A promise nobody checks is
+ * a promise that eventually breaks — so check it here.
+ */
+function validatePrivacy() {
+  const sources = walk(SRC, (file) => file.endsWith('.js'));
+
+  for (const file of sources) {
+    const source = stripComments(fs.readFileSync(file, 'utf8'));
+
+    if (/\bfetch\s*\(/.test(source)) {
+      fail('privacy', `${rel(file)} calls fetch() — the extension must not make network requests`);
+    }
+    if (/\bXMLHttpRequest\b|\bnew\s+WebSocket\b|\bnavigator\.sendBeacon\b/.test(source)) {
+      fail('privacy', `${rel(file)} can open a network connection`);
+    }
+  }
+
+  // The built-in favicon endpoint only works with the matching permission.
+  const manifestText = stripComments(fs.readFileSync(manifestPath, 'utf8'));
+  const declaresFavicon = manifestText.includes('"favicon"');
+  const usesFaviconEndpoint = sources.some((file) =>
+    stripComments(fs.readFileSync(file, 'utf8')).includes('/_favicon/')
+  );
+
+  if (usesFaviconEndpoint && !declaresFavicon) {
+    fail(
+      'privacy',
+      'src/ uses /_favicon/ but manifest.json does not declare the "favicon" permission'
+    );
+  }
+  if (declaresFavicon && !usesFaviconEndpoint) {
+    warn('privacy', 'the "favicon" permission is declared but /_favicon/ is never used');
+  }
+
+  notes.push('privacy: no network calls in src/, favicon served by the browser');
+}
+
+// ---------------------------------------------------------------------------
 // message protocol
 // ---------------------------------------------------------------------------
 
@@ -297,6 +353,7 @@ function validateMessages() {
 const SECTIONS = {
   manifest: validateManifest,
   i18n: validateI18n,
+  privacy: validatePrivacy,
   messages: validateMessages
 };
 

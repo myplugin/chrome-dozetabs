@@ -49,6 +49,15 @@
 
 ### 变更
 
+- **弹窗图标不再抓取网络**：原先打开弹窗时，Service Worker 会 `fetch()` 每个标签页
+  声明的 `favIconUrl`——那是本扩展唯一的对外网络访问。现改用 Chrome 内置的
+  `_favicon/` 端点（`chrome-extension://<id>/_favicon/?pageUrl=…`），图标由浏览器从
+  自身缓存提供，**对外请求数归零**。`manifest.json` 增加 `favicon` 权限；因已申请
+  `tabs` 与主机权限，按官方说明不产生新的安装警告。附带修复：休眠中的标签页原先
+  没有 `favIconUrl`、只能显示占位图，改为按页面 URL 查询后能显示真实图标。
+  同时删除了 `background/favicon.js`、`fetchFavicon` 消息类型与弹窗里的并发抓取逻辑。
+- **新增 privacy 校验**：`npm run validate` 会扫描 `src/`，出现 `fetch()` /
+  `XMLHttpRequest` / `WebSocket` 即判定失败——把「零对外请求」从文档承诺变成 CI 规则。
 - **「休眠其他标签页」默认会先弹出确认框**（与 README 早已声明的行为一致，
   可在选项页关闭）。
 - 休眠失败的原因由英文句子改为稳定的原因码，由界面按当前语言渲染
@@ -78,7 +87,7 @@
 - 新增 **ESLint 10**（flat config）与 **Prettier**，`.editorconfig`、`.gitattributes`、
   `.nvmrc`；`npm run check` 一条命令跑完格式、静态检查、一致性校验与测试。
 - 测试栈从 vitest 迁移到 **Node 内置 `node:test`**，实现零运行时依赖的测试：
-  断言数由 37 增至 **129**，覆盖存储层并发、设置清洗、休眠判定矩阵、
+  断言数由 37 增至 **135**，覆盖存储层并发、设置清洗、休眠判定矩阵、
   消息路由与启动休眠不变量；`tests/helpers/chrome-mock.js` 提供可复用的 chrome API 模拟。
 - 新增 `tool/validate.js`：校验 manifest 引用、多语言 key 对齐、
   消息类型「声明即处理」，并修正了原 i18n 检查脚本的误报
@@ -90,7 +99,7 @@
   每 6 小时自动同步分支与 tag，并在同一次运行里完成校验与打包。
 - 重构真机脚本：抽出 `scripts/_browser.py`；删除 `popup-e2e-probe.py`（未定义变量
   导致每次必崩、从未完整跑通）与 `sw-log-probe.py`（检查失败仍返回 0，假绿）；
-  新增 `scripts/verify-in-browser.py`——38 项断言、退出码可信，覆盖扩展加载、
+  新增 `scripts/verify-in-browser.py`——41 项断言、退出码可信，覆盖扩展加载、
   设置默认值、弹窗与选项页渲染、状态采集（含密码排除）与唤醒恢复握手。
 - `scripts/measure-memory.ps1` 支持 `-Profile` 过滤与 `-MaxWorkingSetGb` 阈值退出码，
   并补 UTF-8 BOM 以修正 Windows PowerShell 5.1 下的中文乱码。

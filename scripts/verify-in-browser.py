@@ -32,7 +32,7 @@ from playwright.async_api import async_playwright
 import _browser as B
 
 FORM_PAGE = """<!doctype html><html><head><meta charset="utf-8">
-<title>Form Probe</title></head><body style="margin:0">
+<title>Form Probe</title><link rel="icon" href="/icon.svg"></head><body style="margin:0">
 <div style="height:4000px">
   <h1 id="heading">restore probe</h1>
   <input id="field" name="field" value="">
@@ -65,7 +65,15 @@ async def run(args: argparse.Namespace) -> int:
 
     B.kill_browser_for_profile(profile)
 
-    with B.LocalServer(args.port, pages={"/form": FORM_PAGE.encode("utf-8")}) as server:
+    ICON_SVG = (
+        b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
+        b'<rect width="16" height="16" fill="#188038"/></svg>'
+    )
+
+    with B.LocalServer(
+        args.port,
+        pages={"/form": FORM_PAGE.encode("utf-8"), "/icon.svg": ICON_SVG},
+    ) as server:
         async with async_playwright() as pw:
             ctx = await B.launch(pw, profile, channel=args.channel)
             page_errors: list[str] = []
@@ -124,6 +132,47 @@ async def run(args: argparse.Namespace) -> int:
                 report.check("popup applies translations", bool(popup_state["brand"]) and popup_state["brand"] != "extName", popup_state["brand"])
                 report.check("popup translates tooltips", bool(popup_state["refreshTitle"]) and popup_state["refreshTitle"] != "refresh")
                 report.check("popup translates the view tabs", all(label.strip() for label in popup_state["viewLabels"]), str(popup_state["viewLabels"]))
+
+                # ---------------------------------------------- favicons
+                # The privacy promise is "zero network requests". Icons must come
+                # from the browser's own _favicon endpoint, never a remote fetch.
+                favicon_state = await popup.evaluate(
+                    """async () => {
+                        const endpoint = chrome.runtime.getURL('/_favicon/');
+                        const images = [...document.querySelectorAll('.tab-favicon')];
+                        const probe = new Image();
+                        const loaded = await new Promise((resolve) => {
+                            probe.onload = () => resolve(true);
+                            probe.onerror = () => resolve(false);
+                            const url = new URL(endpoint);
+                            url.searchParams.set('pageUrl', location.href);
+                            url.searchParams.set('size', '32');
+                            probe.src = url.toString();
+                            setTimeout(() => resolve(false), 3000);
+                        });
+                        return {
+                            images: images.length,
+                            allLocal: images.every(i => i.src.startsWith(endpoint) || i.src.startsWith('data:')),
+                            anyRemote: images.some(i => /^https?:/i.test(i.src)),
+                            hasFaviconPermission: chrome.runtime.getManifest().permissions.includes('favicon'),
+                            probeLoaded: loaded,
+                        };
+                    }"""
+                )
+                report.check(
+                    "popup never loads an icon over the network",
+                    favicon_state["allLocal"] and not favicon_state["anyRemote"],
+                    str(favicon_state),
+                )
+                report.check(
+                    "manifest declares the favicon permission",
+                    favicon_state["hasFaviconPermission"],
+                )
+                report.check(
+                    "the built-in favicon endpoint serves an image",
+                    favicon_state["probeLoaded"],
+                    "Chrome returned an icon for this page",
+                )
 
                 # ------------------------------------------------- options
                 options = await ctx.new_page()

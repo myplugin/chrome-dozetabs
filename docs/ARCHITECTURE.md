@@ -96,7 +96,6 @@ src/
 │   ├── auto-sleep.js          按空闲时长自动休眠
 │   ├── startup-suspend.js     启动抢先休眠（核心）
 │   ├── badge.js               图标角标（含防抖）
-│   ├── favicon.js             图标代理 + 内存缓存
 │   ├── menus.js               右键菜单
 │   └── tab-state.js           注入到页面的采集函数（必须自包含）
 ├── utils/                     SW 与 UI 共享的逻辑
@@ -105,6 +104,7 @@ src/
 │   ├── session-store.js       chrome.storage.session（带内存降级）
 │   ├── tab-manager.js         chrome.tabs 包装 + canSleepTab 判定
 │   ├── tab-wait.js            弹窗用的有界轮询（等待真实状态变化，不靠固定延时）
+│   ├── favicon.js             构造浏览器内置 `_favicon/` 端点 URL（不联网）
 │   ├── whitelist.js           域名匹配 / 内部页 / 空标签页（唯一实现）
 │   ├── settings.js            sanitizeSettings：不可信设置的清洗
 │   ├── i18n.js                t() 与 applyTranslations()
@@ -180,7 +180,6 @@ content/*      ──▶ 无 import（classic script，只能发消息）
 | UI → SW      | `lockTab` / `unlockTab` / `getLockedTabs`                 | `{success}` / `{lockedTabs:number[]}`    |
 | UI → SW      | `getBatchStatus` / `abortBatch`                           | 批处理进度 / `{success}`                 |
 | UI → SW      | `getStatistics` / `resetStatistics`                       | `{statistics}` / `{success, statistics}` |
-| UI → SW      | `fetchFavicon`                                            | `{success, dataUrl}`                     |
 | Content → SW | `consumeRestoreState`                                     | `{state: TabState \| null}`              |
 | 测试钩子     | `triggerStartupSweep`                                     | `{discarded: number}`                    |
 
@@ -336,14 +335,14 @@ chrome.alarms（每 1 分钟）→ runAutoSleepCheck()
 
 ## 8. 已知限制
 
-| 限制                             | 说明                                                                              | 状态                                  |
-| -------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------- |
-| 窗口内新开的后台标签页也会被休眠 | 启动后 45 秒窗口内，新开/后台打开的标签页同样会被抢先休眠（点击即加载，体验一致） | 有意为之                              |
-| 页面内 JS 状态丢失               | `discard()` 的固有语义                                                            | 无法解决                              |
-| 复杂富文本编辑器内容可能恢复不全 | 基于 `value` 回填 + `input`/`change` 事件                                         | 尽力而为                              |
-| Worker 被回收会打断清扫定时器    | 窗口内 Worker 重启会自动恢复清扫，但存在最长约 750ms 的空档                       | 可接受                                |
-| `<all_urls>` 主机权限            | 状态采集需要；也是安装提示的来源                                                  | 见 ROADMAP 的最小化计划               |
-| favicon 需一次对外请求           | 弹窗展示图标时抓取页面自己的图标                                                  | 计划改用 `favicon` 权限 + `_favicon/` |
+| 限制                             | 说明                                                                              | 状态                    |
+| -------------------------------- | --------------------------------------------------------------------------------- | ----------------------- |
+| 窗口内新开的后台标签页也会被休眠 | 启动后 45 秒窗口内，新开/后台打开的标签页同样会被抢先休眠（点击即加载，体验一致） | 有意为之                |
+| 页面内 JS 状态丢失               | `discard()` 的固有语义                                                            | 无法解决                |
+| 复杂富文本编辑器内容可能恢复不全 | 基于 `value` 回填 + `input`/`change` 事件                                         | 尽力而为                |
+| Worker 被回收会打断清扫定时器    | 窗口内 Worker 重启会自动恢复清扫，但存在最长约 750ms 的空档                       | 可接受                  |
+| `<all_urls>` 主机权限            | 状态采集需要；也是安装提示的来源                                                  | 见 ROADMAP 的最小化计划 |
+| ~~favicon 需一次对外请求~~       | 已消除：改用浏览器内置 `_favicon/` 端点，图标由 Chrome 从自身缓存提供             | 对外请求为零            |
 
 ---
 

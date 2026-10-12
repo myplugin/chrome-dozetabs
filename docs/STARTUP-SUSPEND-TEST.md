@@ -25,7 +25,7 @@
 并直接驱动它注册的监听器与消息处理器：
 
 ```bash
-npm test                    # 全部 129 项断言
+npm test                    # 全部 135 项断言
 npm run test:startup        # 只跑启动休眠相关的两组
 ```
 
@@ -58,7 +58,7 @@ python scripts\smoke-test.py --tabs 12          # 12 标签 A/B 内存对照
 
 | 验证项                                      | 方法                                                                  | 结果                                                                                                         |
 | ------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 扩展在真实 Edge 干净加载、设置默认值正确    | `scripts/verify-in-browser.py`                                        | 38 项断言全部通过：manifest 可加载、10 项设置默认值、白名单 16 条、`storage.session` 可用、无未捕获页面错误  |
+| 扩展在真实 Edge 干净加载、设置默认值正确    | `scripts/verify-in-browser.py`                                        | 41 项断言全部通过：manifest 可加载、10 项设置默认值、白名单 16 条、`storage.session` 可用、无未捕获页面错误  |
 | 弹窗与选项页在真实浏览器里渲染              | `scripts/verify-in-browser.py`                                        | 弹窗行/按钮数与标签数一致、i18n 生效；选项页 9 个开关（含"休眠前确认"）、页脚版本取自 manifest、白名单 16 行 |
 | 状态采集正确（且不含密码）                  | `scripts/verify-in-browser.py`（真实 `captureTabState`）              | 滚动位置、input/textarea/select 全部采集；密码字段被排除                                                     |
 | 唤醒恢复握手（休眠时落盘 → 页面一次性领取） | `scripts/verify-in-browser.py`                                        | 重新加载后滚动位置与表单值全部还原；状态被领取一次后删除；后续重新加载不会重放旧输入                         |
@@ -144,7 +144,7 @@ Reloading or updating the extension never fires `onStartup`, so it can never
 mass-discard your background tabs; `tests/startup-suspend-reload.test.mjs` guards
 that invariant in its own process.
 
-Automated coverage: `npm test` (129 assertions) and `npm run test:startup`.
+Automated coverage: `npm test` (135 assertions) and `npm run test:startup`.
 The real-browser scripts under `scripts/` currently have known defects (see
 [ROADMAP N2](ROADMAP.md)) — do not treat their exit codes as acceptance evidence
 until that is fixed. The manual 200-tab A/B procedure above remains the source of

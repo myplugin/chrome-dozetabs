@@ -17,11 +17,11 @@ Tab Sleep 是一个 Chrome/Edge **Manifest V3 扩展**，用 Chrome 原生的
 ```bash
 npm ci                 # 仅安装 eslint / prettier（测试零依赖）
 npm run check          # 提交前必跑：格式 + lint + manifest/多语言/协议校验 + 测试
-npm test               # node:test 测试套件（129 项断言）
+npm test               # node:test 测试套件（135 项断言）
 npm run test:startup   # 只跑启动休眠相关的两组测试
 npm run validate       # 只跑一致性校验
 npm run lint:py        # 检查 scripts/*.py（需 pip install -r scripts/requirements-dev.txt）
-python scripts/verify-in-browser.py   # 真机验证：加载/UI 渲染/采集与恢复（38 项断言）
+python scripts/verify-in-browser.py   # 真机验证：加载/UI 渲染/采集与恢复（41 项断言）
 npm run build          # 产出 dist/tab-sleep-v<version>.zip
 npm run format         # Prettier 全量格式化
 ```
@@ -42,6 +42,9 @@ npm run format         # Prettier 全量格式化
    批量休眠是 10 路并发的，裸 `get` → 改 → `set` 会丢更新。
 5. **不要新增浏览器权限**，除非在 PR 里论证无法避免。权限变化会影响所有
    已安装用户的更新提示。
+6. **不要在 `src/` 里发起任何网络请求。** `fetch()` / `XMLHttpRequest` / `WebSocket`
+   会被 `npm run validate` 的 privacy 段直接判定失败——README 与 `PRIVACY.md` 承诺
+   「零对外请求」，这条承诺由代码强制。图标一律走浏览器内置的 `_favicon/` 端点。
 
 ## 改动影响面自查
 
