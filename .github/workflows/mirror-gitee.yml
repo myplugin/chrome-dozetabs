@@ -1,11 +1,11 @@
 name: Mirror from Gitee
 
 # Gitee is the primary development platform for this project; GitHub is its public
-# mirror. The two repositories have different names (Gitee keeps `chrome-tab-sleep`,
-# GitHub is `chrome-dozetabs`), which is fine — only the owner/slug in GITEE_REPO
-# below and the destination repository this workflow runs in must be correct.
-# Gitee's own mirror feature would need an account binding, so the sync runs here
-# instead, on a schedule.
+# mirror. Both repositories carry the same name (`chrome-dozetabs`). The GITEE_REPO
+# slug below is the Gitee side of that pair and **must be updated on any rename** —
+# otherwise this sync keeps working through a 302 redirect of the old name, which
+# hides the mistake instead of surfacing it. Gitee's own mirror feature would need
+# an account binding, so the sync runs here instead, on a schedule.
 #
 # Note: refs pushed with the workflow's own GITHUB_TOKEN do NOT trigger other
 # workflows (GitHub suppresses that to avoid recursion), so this job runs the
@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  GITEE_REPO: xplugins/chrome-tab-sleep
+  GITEE_REPO: xplugins/chrome-dozetabs
   # Ground truth for `tool/validate.js`'s branch-name check — see the comment in
   # ci.yml. This job also runs `npm run check`, so it needs the same value.
   DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}

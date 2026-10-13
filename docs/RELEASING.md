@@ -79,16 +79,18 @@ git push origin master --tags
 
 **Gitee 是主开发平台，GitHub 是公开镜像。两个平台的默认分支都是 `master`。**
 
-> **两个平台的仓库名不同**（Gitee 未跟随 GitHub 改名）：
+> **两个平台的仓库名现在一致**，都是 `chrome-dozetabs`：
 >
-> | 平台   | 仓库                        | 可见性 |
-> | ------ | --------------------------- | ------ |
-> | Gitee  | `xplugins/chrome-tab-sleep` | 公开   |
-> | GitHub | `myplugin/chrome-dozetabs`  | 公开   |
+> | 平台   | 仓库                       | 可见性 |
+> | ------ | -------------------------- | ------ |
+> | Gitee  | `xplugins/chrome-dozetabs` | 公开   |
+> | GitHub | `myplugin/chrome-dozetabs` | 公开   |
 >
-> GitHub 原名 `chrome-tab-sleep`，已随产品更名为 Dozetabs 一并改为 `chrome-dozetabs`；
-> Gitee 侧保持原名。**GitHub 会对旧地址 301 重定向**，所以旧链接暂时不会立即失效，
-> 但不要再写旧地址——本文档与 `.github/` 中的链接均已更新为新名。
+> 两边原名都是 `chrome-tab-sleep`，已随产品更名为 Dozetabs 一并改掉（GitHub 先改，
+> Gitee 随后跟上）。**两个平台都会对旧地址做重定向**（GitHub 301、Gitee 302），
+> 所以旧链接短期内不会立即失效——**这正是不该依赖它的原因**：重定向会把"忘了改"
+> 这件事藏起来。文档与 `.github/` 中的链接、remote 地址、以及
+> `mirror-gitee.yml` 的 `GITEE_REPO` 常量都已更新为新名。
 >
 > GitHub 仓库已于 2026-10-13 由所有者改为 **public**。此前它是私有的，导致
 > `.github/` 下的 issue 模板与其中的链接对外部贡献者**看不到也点不开**；现在这条限制
@@ -110,7 +112,7 @@ git push origin master --tags
 
 | remote   | 地址                                          | 角色                              |
 | -------- | --------------------------------------------- | --------------------------------- |
-| `origin` | `git@gitee.com:xplugins/chrome-tab-sleep.git` | 主开发仓库（日常推送、issue、PR） |
+| `origin` | `git@gitee.com:xplugins/chrome-dozetabs.git`  | 主开发仓库（日常推送、issue、PR） |
 | `github` | `git@github.com:myplugin/chrome-dozetabs.git` | 公开镜像（CI + 备份 + Release）   |
 
 > **维护者本机的 remote 地址可能与上表不同**：`github.com:22` 在部分网络下会被
@@ -210,7 +212,8 @@ GitHub Release 由 `.github/workflows/release.yml` 生成。注意它的触发�
 打 tag 推送或手动 `workflow_dispatch`：**同步工作流推送的 tag 不会自动触发它**
 （原因见上面的第 1 条限制）。发版时在 GitHub 的 Actions 页面手动触发一次即可。
 
-> **Gitee 侧的发行版需要手动上传**：GitHub 的 Release 由上述工作流自动创建并附上 zip，
-> 而 Gitee 没有配置 CI（见上一节），因此发版后请到 Gitee 的「发行版」页面手动新建，
-> 上传同一份 `dist/dozetabs-v<version>.zip`，说明文字可直接复制 `CHANGELOG.md`
-> 对应小节。
+> **不在 Gitee 侧单独维护发行版（2026-10-13 决定）**：GitHub 的 Release 由上述工作流
+> 自动创建并附上 zip，而 Gitee 上传发行版需要人工操作。既然两个仓库名已统一、代码由
+> 定时同步保持一致，就没有必要再维护第二份人工上传的产物——**需要时从 GitHub Release
+> 取 `dozetabs-v<version>.zip` 即可**。若日后确实需要，在 Gitee 的「发行版」页面手动
+> 新建并上传同一份 zip，说明文字可直接复制 `CHANGELOG.md` 对应小节。

@@ -51,24 +51,44 @@
 
 ### 变更
 
-- **GitHub 仓库已由所有者改为 public，并改名为 `chrome-dozetabs`**（原名
-  `chrome-tab-sleep`）。后果：
+- **GitHub 仓库已由所有者改为 public，两个平台的仓库名也先后改为 `chrome-dozetabs`**
+  （原名均为 `chrome-tab-sleep`；GitHub 先改，Gitee 随后跟上）。后果：
   - `.github/` 下的 issue 模板、PR 模板、CODEOWNERS、Dependabot 与 Actions
     对所有人可见并开始生效；三个对外联系链接已实测匿名返回 200；
   - 仓库一旦公开即应视为**准单向操作**——技术上可改回 private，但代码可能已被
     fork、被搜索引擎与第三方镜像缓存，改回去也收不回来；
-  - **Gitee 侧没有改名**，仍是 `xplugins/chrome-tab-sleep`。两个平台因此有了不同的
-    仓库名，`docs/RELEASING.md` 的 remote 表已按实际情况分别记录；
+  - `mirror-gitee.yml` 的 `GITEE_REPO` 常量、两个 remote 地址与文档里的链接都已
+    同步为新名。**这一步必须做**：Gitee 对旧名返回 302、GitHub 返回 301，
+    重定向会让"忘了改"继续正常工作，从而把错误藏起来；
   - 公开仓库的 Actions 标准运行器不再消耗私有仓库的计费额度。
+- **Gitee 侧不再单独维护发行版**：GitHub 的 Release 由 `release.yml` 自动创建，
+  而 Gitee 上传发行版需要手动操作。既然两端仓库名已统一、代码也由定时同步保持
+  一致，就没有必要再维护第二份人工上传的产物——**需要时从 GitHub Release 取
+  `dozetabs-v<version>.zip` 即可**。若日后要恢复，在 Gitee 的「发行版」页面
+  手动新建并上传同一份 zip 即可。
 - `v1.1.0` 的 Release 已由 `release.yml` 自动创建，并附带
-  `dozetabs-v1.1.0.zip`（51.26 KB）——这也顺带确认了此前无法核实的那次发布工作流
-  确实跑成功了。
+  `dozetabs-v1.1.0.zip`（52,495 字节）——这也顺带确认了此前无法核实的那次发布工作流
+  确实跑成功了。**该附件已下载并与本仓库 `npm run build` 的产物逐条目比对哈希，
+  41 个条目全部一致**（比对过程还挖出一个本地行尾问题，见「工程化」）。
 
 ### 工程化
 
 - `tool/validate.js` 新增第 6 个校验段 `links`：解析全部 Markdown 的相对链接
   （26 个文件、133 条）并检查目标文件是否存在。外部 URL **刻意不抓取**——
   会联网的校验器在网络不通时会失败，而 `npm run validate` 必须能离线运行。
+- **GitHub Actions 统一升级到 node24 运行时**（合并 Dependabot 的四个 PR）：
+  `actions/checkout` 4→7、`actions/setup-node` 4→7、`actions/upload-artifact` 4→7、
+  `softprops/action-gh-release` 2→3。四个 PR 表面是四个 action，实质是同一件事——
+  运行时从 `node20` 换成 `node24`，因此合为一个提交而不是四个。升级在特性分支上
+  先跑通 CI 才快进合并；唯一的例外是 `action-gh-release`，它只在打 tag 时运行，
+  要等下一次发版才真正被执行到。
+- **查明并修正本地打包与 CI 产物不一致**：拿 Release 附件与本地产物逐条目比对哈希，
+  发现 6 个 SVG 图标的字节不同（本地包大 30 字节）。原因不是打包器，而是**工作区
+  行尾**——`.gitattributes` 要求 `* text=auto eol=lf`，但 git 不会主动重写"看起来
+  没被修改"的文件，于是在 `.gitattributes` 生效前就已存在的副本里这些 SVG 仍是
+  CRLF，而 `git status` 依然干净（仓库里的 blob 确实是 LF，差异只在磁盘上）。
+  修正工作区后，本地产物与 Release 附件 **41 个条目逐一相同**。
+  这个陷阱与自查、修正命令已写入 `docs/DEVELOPMENT.md`。
 
 ## [1.1.0] - 2026-10-13
 

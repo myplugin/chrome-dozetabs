@@ -216,18 +216,19 @@ Gitee Go 的配置语法与 Actions 完全不同，等于要额外维护第二�
 就要面对老用户认不出、商店条目历史断裂、外部链接失效。所以这类决策
 **越早做越便宜**——这正是趁未发布先改掉的原因。
 
-**仓库改名（2026-10-13 更新）**：GitHub 侧已随产品改名为 **`chrome-dozetabs`**，
-并同时由 private 改为 **public**；**Gitee 侧保持 `chrome-tab-sleep` 不变**。
-两个平台的仓库名因此不同，已在
-[RELEASING.md 第 6 节](RELEASING.md#6-仓库拓扑与同步)按实际情况分别记录。
+**仓库改名与公开（2026-10-13 完成）**：两个平台的仓库名都已改为
+**`chrome-dozetabs`**（GitHub 由 private 一并改为 **public**），两端仓库名重新一致，
+拓扑记录见 [RELEASING.md 第 6 节](RELEASING.md#6-仓库拓扑与同步)。
 
-连带同步并实测过的地方：`.github/ISSUE_TEMPLATE/config.yml` 的三个对外链接、
-`CHANGELOG.md` 的对比链接与 Release 链接——均匿名返回 200。GitHub 对旧地址会做
-301 重定向，所以旧链接短时间内不会立即失效，但不应该再写旧地址。
+连带同步并实测过的地方：`mirror-gitee.yml` 的 `GITEE_REPO` 常量、本机两个 remote
+地址、`.github/ISSUE_TEMPLATE/config.yml` 的三个对外链接、`CHANGELOG.md` 的对比
+与 Release 链接——链接均匿名返回 200。
 
-若日后要把 Gitee 也改成 `dozetabs` 系列名，同一次改名会牵动 remote 地址、
-`docs/RELEASING.md` 的 remote 表、`mirror-gitee.yml` 的 `GITEE_REPO` 常量与
-`.github/ISSUE_TEMPLATE/config.yml` 的链接——**成本随时间上升，这是明知而接受的**。
+**这里有一个值得记住的教训**：两个平台都会对旧仓库名做重定向（GitHub 301、
+Gitee 302），所以**忘记更新某个引用时它仍然能正常工作**——重定向把错误藏了起来，
+而不是暴露出来。`mirror-gitee.yml` 里的 `GITEE_REPO` 正是这一类：它若没改，
+同步会继续从旧名的重定向拉取，一切看起来都正常。因此改名后必须**主动搜一遍旧名**，
+不能依赖"试试还能不能用"来判断有没有改完。
 
 ---
 
