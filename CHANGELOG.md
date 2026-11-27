@@ -10,6 +10,18 @@
 
 ### 修复
 
+- **`mirror-gitee.yml` 连续 120+ 次同步失败的根因：GITHUB_TOKEN 缺 `workflows` 权限**。
+  10-14 推上 Gitee 的 cron 频率修改（`5ba36ab`）是一个**改动 `.github/workflows/` 下文件**
+  的 commit，而 GitHub 规定 `GITHUB_TOKEN` 推送 workflow 文件改动必须持有
+  `workflows` 权限——该 workflow 只声明了 `contents: write`，于是镜像的 push 步骤
+  每次 403（clone 一直正常，失败点在最后一步，且不在本地可复现：人工身份推送
+  同样的 fast-forward 是成功的）。连锁后果：
+  - GitHub master 从 10-14 起卡在 `8e5a6a7`，「每天同步一次」的 cron 修改
+    **从未到达 GitHub**，线上 workflow 一直是旧版每 6 小时，Actions 页每 6 小时红一次；
+  - 修复存在鸡生蛋问题：修复 commit 自身也改 workflow 文件，坏掉的镜像推不动它，
+    必须先用真实账号（pycv）手动推 GitHub 一次，之后镜像恢复自愈。
+  修复：`permissions` 增加 `workflows: write`（含注释说明缘由），并以 pycv 身份
+  手动对齐一次 GitHub master。
 - **ADR-0004 里有一条失效链接**：它仍指向 `src/content/content-script.js`，而该文件
   已在 ADR-0008 中被删除。ADR 正文作为决策历史保留（不重写），但链接改为纯文本并
   注明「该文件已删除」，避免读者点进一个空响应。
