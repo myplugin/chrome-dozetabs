@@ -1,0 +1,31 @@
+docs/RELEASING.md
+  s_40a0ed642e1a84::t_b5e6b0f8a5a7af 152-153,160-167
+CHANGELOG.md
+  s_40a0ed642e1a84::t_3f2100f0022735 26-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.10",
+  "base_commit_sha": "98352afdaf0cd5b1d36119abdca2f75f2364c700",
+  "prompts": {},
+  "humans": {
+    "h_b8e9e22b7b320f": {
+      "author": "chenyude <chenyude@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_40a0ed642e1a84": {
+      "agent_id": {
+        "tool": "opencode2",
+        "id": "ses_ec6e6c0b9ffeN5BxBiwI1ivssA",
+        "model": "glm-5.3"
+      },
+      "human_author": "chenyude <chenyude@h-partners.com>",
+      "custom_attributes": {
+        "stats_models": {"glm-5.3":{"additions":12,"deletions":4}},
+        "stats_total_additions": 12,
+        "stats_total_deletions": 4
+      }
+    }
+  }
+}
