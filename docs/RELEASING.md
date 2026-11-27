@@ -149,16 +149,22 @@ git push github master --tags     # 双推：让镜像立刻跟上（可选）
 
 ### 定时同步（Gitee → GitHub）
 
-即使忘了双推也不会漂移：`.github/workflows/mirror-gitee.yml` 每 6 小时把 Gitee 的
-分支与 tag 同步到 GitHub，也可以手动触发。
+即使忘了双推也不会漂移：`.github/workflows/mirror-gitee.yml` 每天一次（约 UTC 02:17）
+把 Gitee 的分支与 tag 同步到 GitHub，也可以手动触发。
 
 **同步是「快进（fast-forward）优先」的，绝不倒退 GitHub。** 它刻意**不用**
 `git push --mirror`——那会强制更新每一个 ref，于是当 Gitee 落后时（例如你刚把改动
 直接推到了 GitHub），同步会**把 GitHub 静默倒退**，丢掉更新的提交。现在的做法是
 不带 force 推送：落后的分支会被拒绝，任务红掉并给出警告，而不是默默毁掉数据。
 
-因此：**日常请推 Gitee（`origin`）**；只推 GitHub 时同步任务会报警并在 6 小时窗口内
-持续失败，直到你把 Gitee 补上。
+因此：**日常请推 Gitee（`origin`）**；只推 GitHub 时同步任务会报警并持续失败，
+直到你把 Gitee 补上。
+
+**⚠ 硬性限制：改了 `.github/workflows/` 下文件的 commit，镜像推不动。** GitHub 的
+安全规则永远禁止 workflow 自带的 `GITHUB_TOKEN` 推送 workflow 文件改动（防提权，
+`permissions` 声明无法豁免——`workflows` 甚至不是合法的 scope）。这种 commit 必须
+用真实账号手动推：`git push github master`。忘了推的症状是同步任务从那个 commit
+起**持续红**而 Gitee 侧毫无异常——曾因此静默断链 120+ 次才发现。
 
 ### 推送 GitHub 失败时（网络受限环境）
 
