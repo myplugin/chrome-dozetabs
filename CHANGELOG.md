@@ -10,18 +10,19 @@
 
 ### 修复
 
-- **`mirror-gitee.yml` 连续 120+ 次同步失败的根因：GITHUB_TOKEN 缺 `workflows` 权限**。
-  10-14 推上 Gitee 的 cron 频率修改（`5ba36ab`）是一个**改动 `.github/workflows/` 下文件**
-  的 commit，而 GitHub 规定 `GITHUB_TOKEN` 推送 workflow 文件改动必须持有
-  `workflows` 权限——该 workflow 只声明了 `contents: write`，于是镜像的 push 步骤
-  每次 403（clone 一直正常，失败点在最后一步，且不在本地可复现：人工身份推送
-  同样的 fast-forward 是成功的）。连锁后果：
-  - GitHub master 从 10-14 起卡在 `8e5a6a7`，「每天同步一次」的 cron 修改
-    **从未到达 GitHub**，线上 workflow 一直是旧版每 6 小时，Actions 页每 6 小时红一次；
-  - 修复存在鸡生蛋问题：修复 commit 自身也改 workflow 文件，坏掉的镜像推不动它，
-    必须先用真实账号（pycv）手动推 GitHub 一次，之后镜像恢复自愈。
-  修复：`permissions` 增加 `workflows: write`（含注释说明缘由），并以 pycv 身份
-  手动对齐一次 GitHub master。
+- **`mirror-gitee.yml` 连续 120+ 次同步失败的根因：`GITHUB_TOKEN` 无法推送改动
+  `.github/workflows/` 的 commit**。10-14 推上 Gitee 的 cron 频率修改（`5ba36ab`）正是
+  这种 commit；GitHub 的硬性安全规则拒绝 `GITHUB_TOKEN`（GitHub App 身份）推送 workflow
+  文件改动（防 workflow 提权），**与 `permissions` 声明无关**。镜像的 push 步骤每次 403
+  （clone 一直正常；本地以人工身份推送同样的 fast-forward 却成功，所以故障不可复现）。
+  连锁后果：GitHub master 从 10-14 起卡在 `8e5a6a7`，每天一次的 cron 修改从未到达
+  GitHub，线上 workflow 一直是旧版每 6 小时，Actions 每 6 小时红一次；且修复存在
+  鸡生蛋问题——修复 commit 自身也改 workflow 文件，坏掉的镜像推不动它。
+  第一次修复尝试（`permissions` 加 `workflows: write`）**无效且有害**：`workflows`
+  不是合法 scope，workflow 直接 `startup_failure`（症状：run 名显示为文件路径、
+  零 job），已回滚。现行方案：**改 workflow 文件的 commit 用真实账号手动
+  `git push github master`**（本次修复即如此），普通 commit 照常自动镜像。
+  可选的彻底方案是让镜像改用 PAT 推送（待定）。
 - **ADR-0004 里有一条失效链接**：它仍指向 `src/content/content-script.js`，而该文件
   已在 ADR-0008 中被删除。ADR 正文作为决策历史保留（不重写），但链接改为纯文本并
   注明「该文件已删除」，避免读者点进一个空响应。

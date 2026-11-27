@@ -16,15 +16,14 @@ on:
     - cron: '17 2 * * *' # daily, ~02:17 UTC
   workflow_dispatch:
 
-# `workflows: write` is REQUIRED, not optional: pushing any commit that touches
-# files under .github/workflows/ (e.g. a cron-frequency change) is rejected with
-# 403 for GITHUB_TOKEN without it. Learned the hard way — a cron tweak broke this
-# sync for 120+ consecutive runs while clone kept working, so the failure was
-# invisible from Gitee's side, and the fix commit itself could never be mirrored
-# (chicken-and-egg): it had to be pushed manually with a real account first.
+# GITHUB_TOKEN can NEVER push a commit that touches .github/workflows/ files —
+# GitHub rejects it with 403 no matter what this block says (anti-privilege-
+# escalation rule; `workflows` is not even a legal scope here — adding it makes
+# the whole workflow fail at startup). Such commits must be pushed with a real
+# account: `git push github master` locally. Commits that don't touch
+# .github/workflows/ mirror fine with GITHUB_TOKEN.
 permissions:
   contents: write
-  workflows: write
 
 concurrency:
   group: mirror-gitee
