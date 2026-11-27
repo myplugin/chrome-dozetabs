@@ -1,0 +1,33 @@
+docs/RELEASING.md
+  s_40a0ed642e1a84::t_395b50f95ecd70 152
+CHANGELOG.md
+  s_40a0ed642e1a84::t_9852aeaeb24f7e 88-89,92
+.github/workflows/mirror-gitee.yml
+  s_40a0ed642e1a84::t_91285bacfd713d 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.10",
+  "base_commit_sha": "3cbc15fbdc8bced6cffa83c5fc0eb319aa0161e3",
+  "prompts": {},
+  "humans": {
+    "h_b8e9e22b7b320f": {
+      "author": "chenyude <chenyude@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_40a0ed642e1a84": {
+      "agent_id": {
+        "tool": "opencode2",
+        "id": "ses_ec6e6c0b9ffeN5BxBiwI1ivssA",
+        "model": "glm-5.3"
+      },
+      "human_author": "chenyude <chenyude@h-partners.com>",
+      "custom_attributes": {
+        "stats_models": {"glm-5.3":{"additions":5,"deletions":4}},
+        "stats_total_additions": 5,
+        "stats_total_deletions": 4
+      }
+    }
+  }
+}
