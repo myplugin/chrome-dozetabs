@@ -149,7 +149,7 @@ git push github master --tags     # 双推：让镜像立刻跟上（可选）
 
 ### 定时同步（Gitee → GitHub）
 
-即使忘了双推也不会漂移：`.github/workflows/mirror-gitee.yml` 每天一次（约 UTC 02:17）
+即使忘了双推也不会漂移：`.github/workflows/mirror-gitee.yml` 每 3 天一次（约 UTC 02:17）
 把 Gitee 的分支与 tag 同步到 GitHub，也可以手动触发。
 
 **同步是「快进（fast-forward）优先」的，绝不倒退 GitHub。** 它刻意**不用**
